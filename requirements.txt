@@ -1,0 +1,4 @@
+python-binance==0.7.0
+rx==1.6.1
+termcolor==1.1.0
+websockets==7.0
