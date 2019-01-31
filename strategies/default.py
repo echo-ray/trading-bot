@@ -43,6 +43,9 @@ def perform_step(binance_price, okex_price, binance_client, okex_client, pair, s
 
 
 def perform_step_one(binance_price, okex_price, binance_client, okex_client, pair):
+    global buy_side
+    global sell_side
+
     if (float(okex_price) - float(binance_price)) >= diff:
         print_balance(binance_client, okex_client, "1")
 
