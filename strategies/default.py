@@ -6,6 +6,8 @@ from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument("-d", "--diff", dest="diff",
                     help="diff between prices to execute step", default="0.03")
+parser.add_argument("-qty", "--quantity", dest="quantity",
+                    help="asset quantity to trade", default="1")
 
 args, extra = parser.parse_known_args()
 
@@ -17,6 +19,11 @@ transitions = {
 }
 
 diff = float(args.diff)
+trade_quantity = float(args.quantity)
+binance_side = "binance"
+okex_side = "okex"
+buy_side = binance_side
+sell_side = okex_side
 
 
 def perform_step(binance_price, okex_price, binance_client, okex_client, pair, step):
@@ -44,21 +51,49 @@ def perform_step_one(binance_price, okex_price, binance_client, okex_client, pai
 
         assert_success(binance_success, okex_success)
 
+        buy_side = binance_side
+        sell_side = okex_side
+
         return binance_success and okex_success
 
-    return False
-
-
-def perform_step_two(binance_price, okex_price, binance_client, okex_client, pair):
     if (float(binance_price) - float(okex_price)) >= diff:
-        print_balance(binance_client, okex_client, "2")
+        print_balance(binance_client, okex_client, "1")
 
         binance_success = sell_asset(binance_price, binance_client, pair)
         okex_success = buy_asset(okex_price, okex_client, pair)
 
         assert_success(binance_success, okex_success)
 
+        buy_side = okex_side
+        sell_side = binance_side
+
         return binance_success and okex_success
+
+    return False
+
+
+def perform_step_two(binance_price, okex_price, binance_client, okex_client, pair):
+    if buy_side == binance_side:
+        if (float(binance_price) - float(okex_price)) >= diff:
+            print_balance(binance_client, okex_client, "2")
+
+            binance_success = sell_asset(binance_price, binance_client, pair)
+            okex_success = buy_asset(okex_price, okex_client, pair)
+
+            assert_success(binance_success, okex_success)
+
+            return binance_success and okex_success
+
+    if buy_side == okex_side:
+        if (float(okex_price) - float(binance_price)) >= diff:
+            print_balance(binance_client, okex_client, "2")
+
+            binance_success = buy_asset(binance_price, binance_client, pair)
+            okex_success = sell_asset(okex_price, okex_client, pair)
+
+            assert_success(binance_success, okex_success)
+
+            return binance_success and okex_success
 
     return False
 
@@ -81,9 +116,8 @@ def print_balance(client_one, client_two, step):
 
 def buy_asset(price, client, pair):
     asset, quote = split_pair(pair)
-    balance_quote = float(client.get_balance(quote))
     buy_count = round_down(
-        balance_quote / float(price),
+        trade_quantity,
         2
     )
 
@@ -98,9 +132,8 @@ def buy_asset(price, client, pair):
 
 def sell_asset(price, client, pair):
     asset, quote = split_pair(pair)
-    asset_quote = float(client.get_balance(asset))
     sell_count = round_down(
-        asset_quote / 2,
+        trade_quantity,
         2
     )
     print(colored("selling {} of {} on {}".format(sell_count, asset, client.exchange), "red"))
