@@ -82,7 +82,7 @@ def start_feed(Feed, onValue):
 binanceStream = Observable.create(lambda observer: start_feed(BinanceFeed, lambda value: observer.on_next(value)))
 okexStream = Observable.create(lambda observer: start_feed(OkexFeed, lambda value: observer.on_next(value)))
 
-Observable.zip(
+Observable.combine_latest(
     binanceStream,
     okexStream,
     lambda b, o: (b, o)
