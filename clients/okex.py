@@ -81,11 +81,11 @@ class OkexClient(Client):
             count,
             price
         )
-        if resp.result:
+        if resp['result']:
             if not self.ws:
                 self.ws = OkexWebSocket(pair)
                 self.ws.subscribe_to_order_update(self.on_order_update)
-            return resp.result
+            return resp['result']
         else:
             raise Exception(resp)
 
