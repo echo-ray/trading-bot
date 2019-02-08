@@ -156,7 +156,7 @@ url = 'wss://real.okex.com:10442/ws/v3'
 
 
 def subscribe(api_key, passphrase, secret_key, channels, cb):
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
     t = Thread(
         target=lambda loop: loop.run_until_complete(_subscribe(url, api_key, passphrase, secret_key, channels, cb)),
         args=(loop,)
@@ -166,7 +166,7 @@ def subscribe(api_key, passphrase, secret_key, channels, cb):
     return t
 
 
-class OkexWebSocket():
+class OkexWebSocket(metaclass=Singleton):
     def __init__(self, pair):
         self.feed_table = "spot/ticker"
         self.order_update_table = "spot/order"
