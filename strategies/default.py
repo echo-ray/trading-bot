@@ -12,10 +12,12 @@ parser.add_argument("-qty", "--quantity", dest="quantity",
 args, extra = parser.parse_known_args()
 
 transitions = {
-  "1": "1.5",
-  "1.5": "2",
-  "2": "2.5",
-  "2.5": "1"
+    "1": "1.3",
+    "1.3": "1.6",
+    "1.6": "2",
+    "2": "2.3",
+    "2.3": "2.6",
+    "2.6": "1"
 }
 
 diff = float(args.diff)
@@ -32,8 +34,8 @@ def perform_step(binance_price, okex_price, binance_client, okex_client, pair, s
             return perform_step_one(binance_price, okex_price, binance_client, okex_client, pair)
         if step == "2":
             return perform_step_two(binance_price, okex_price, binance_client, okex_client, pair)
-        if step == "1.5" or step == "2.5":
-            print(colored("waiting for okex order execution", "cyan"))
+        if step.find(".") > -1:
+            print(colored("waiting for order(s) execution", "cyan"))
             return False
     except Exception as e:
         print("error during perform step", step, ":", e)

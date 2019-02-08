@@ -28,7 +28,11 @@ class OkexClient(Client):
     def on_order_update(self, msg):
         status = msg['data'][0]['status']
         if status == ORDER_FILLED:
+            self.calculate_new_balance(
+                msg
+            )
             self.on_order_filled()
+
         if status == ORDER_CANCELLED or status == ORDER_FAILURE:
             print("okex order: {} finished with error".format_map(self.current_order_id))
             sys.exit(1)
@@ -101,7 +105,7 @@ class OkexClient(Client):
         t.start()
         return True
 
-    def calculate_new_balance(self, order, pair, buy, price, quantity):
+    def calculate_new_balance(self, order, pair=None, buy=None, price=None, quantity=None):
         if order:
             asset, quote = split_pair(pair)
             asset_wallet = self.account_api.get_currency(asset)

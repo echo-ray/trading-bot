@@ -1,8 +1,9 @@
 from clients.client import Client
 from binance.enums import *
-from api.binance import create_client, normalize_pair, get_fees
+from api.binance import create_client, normalize_pair, get_fees, create_ws
 from functools import reduce
 from core import split_pair
+import threading
 
 
 class BinanceClient(Client):
@@ -18,6 +19,25 @@ class BinanceClient(Client):
         self.exchange = "binance"
 
         self.last_order_id = None
+        ws = create_ws()
+        ws.start_user_socket(self.on_user_socket_msg)
+        ws.daemon = True
+        ws.start()
+        self.on_order_filled = lambda: None
+
+    def subscribe_to_order_filled(self, cb):
+        self.on_order_filled = cb
+
+    def on_user_socket_msg(self, msg):
+        if msg["e"] == "executionReport":
+            if msg["c"] == self.last_order_id:
+                if msg["X"] == ORDER_STATUS_FILLED:
+                    self.calculate_new_balance(
+                        msg
+                    )
+                    self.on_order_filled()
+                if msg["X"] == ORDER_STATUS_CANCELED or msg["X"] == ORDER_STATUS_REJECTED:
+                    raise Exception("binance order finished with error {}".format(msg["r"]))
 
     def get_fee(self, pair, buy):
         return self.fees[normalize_pair(pair)]['taker']
@@ -42,20 +62,15 @@ class BinanceClient(Client):
             symbol=normalize_pair(pair),
             side=side,
             type=ORDER_TYPE_LIMIT,
-            timeInForce=TIME_IN_FORCE_FOK,
+            timeInForce=TIME_IN_FORCE_GTC,
             quantity=count,
             price=price,
             newOrderRespType=ORDER_RESP_TYPE_RESULT
         )
         success = order["status"] == ORDER_STATUS_FILLED
         if success:
-            self.calculate_new_balance(
-                order,
-                pair,
-                side == SIDE_BUY,
-                price,
-                count
-            )
+            self.last_order_id = order["orderId"]
+
         return success
 
     def fake_order(self, price, count, pair, side):
@@ -63,7 +78,7 @@ class BinanceClient(Client):
             symbol=normalize_pair(pair),
             side=side,
             type=ORDER_TYPE_LIMIT,
-            timeInForce=TIME_IN_FORCE_FOK,
+            timeInForce=TIME_IN_FORCE_GTC,
             quantity=count,
             price=price,
             newOrderRespType=ORDER_RESP_TYPE_RESULT
@@ -75,9 +90,11 @@ class BinanceClient(Client):
             price,
             count
         )
+        t = threading.Timer(0.1, self.on_order_filled)
+        t.start()
         return True
 
-    def calculate_new_balance(self, order, pair, buy, price, quantity):
+    def calculate_new_balance(self, order, pair=None, buy=None, price=None, quantity=None):
         if order:
             asset, quote = split_pair(pair)
             asset_wallet = self.client.get_asset_balance(asset=asset)

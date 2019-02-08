@@ -47,6 +47,7 @@ class StateMachine:
         self.step = next(iter(self.transitions))
         self.steps = 0
         okexClient.subscribe_to_order_filled(self.next)
+        binanceClient.subscribe_to_order_filled(self.next)
 
     def run(self, binance_price, okex_price):
         if self.steps == args.steps:
