@@ -22,6 +22,9 @@ parser.add_argument("-str", "--strategy", dest="strategy",
 parser.add_argument("-s", "--steps", dest="steps",
                     help="number of steps to execute", default=None, type=int)
 
+parser.add_argument("-stp", "--current-step", dest="current_step",
+                    help="current step to start")
+
 parser.add_argument("-r", "--real", dest="real", action="store_true",
                     help="make real trades", default=False)
 
@@ -44,7 +47,10 @@ class StateMachine:
         strategy = importlib.import_module('strategies.' + args.strategy)
         self.transitions = strategy.transitions
         self.perform_step = strategy.perform_step
-        self.step = next(iter(self.transitions))
+        if args.current_step:
+            self.step = args.current_step
+        else:
+            self.step = next(iter(self.transitions))
         self.steps = 0
         okexClient.subscribe_to_order_filled(self.next)
         binanceClient.subscribe_to_order_filled(self.next)
