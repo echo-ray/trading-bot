@@ -8,6 +8,10 @@ parser.add_argument("-d", "--diff", dest="diff",
                     help="diff between prices to execute step", default="0.03")
 parser.add_argument("-qty", "--quantity", dest="quantity",
                     help="asset quantity to trade", default="1")
+parser.add_argument("-fromside", "--buyside", dest="buy_side",
+                    help="buy side", default="binance")
+parser.add_argument("-toside", "--sellside", dest="sell_side",
+                    help="sell side", default="okex")
 
 args, extra = parser.parse_known_args()
 
@@ -24,8 +28,8 @@ diff = float(args.diff)
 trade_quantity = float(args.quantity)
 binance_side = "binance"
 okex_side = "okex"
-buy_side = binance_side
-sell_side = okex_side
+buy_side = args.buy_side
+sell_side = args.sell_side
 
 
 def perform_step(binance_price, okex_price, binance_client, okex_client, pair, step):
