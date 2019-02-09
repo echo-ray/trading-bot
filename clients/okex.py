@@ -90,6 +90,10 @@ class OkexClient(Client):
             if not self.ws:
                 self.ws = OkexWebSocket(pair)
                 self.ws.subscribe_to_order_update(self.on_order_update)
+
+            if not resp['result']:
+                print("okex order failed: {}".format(resp))
+
             return resp['result']
         else:
             raise Exception(resp)

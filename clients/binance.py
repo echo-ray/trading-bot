@@ -71,6 +71,8 @@ class BinanceClient(Client):
         success = order["status"] == ORDER_STATUS_NEW
         if success:
             self.last_order_id = order["clientOrderId"]
+        else:
+            print("binance order failed: {}".format(order))
 
         return success
 
