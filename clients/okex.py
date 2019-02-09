@@ -111,7 +111,7 @@ class OkexClient(Client):
             asset, quote = split_pair(pair)
             asset_wallet = self.account_api.get_currency(asset)
             quote_wallet = self.account_api.get_currency(quote)
-            self.balance[asset] = asset_wallet['available']
-            self.balance[quote] = quote_wallet['available']
+            self.balance[asset] = asset_wallet[0]['available']
+            self.balance[quote] = quote_wallet[0]['available']
         else:
             self.calculate_fake_balance(pair, buy, price, quantity)
