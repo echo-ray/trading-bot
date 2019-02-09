@@ -31,8 +31,15 @@ okex_side = "okex"
 buy_side = args.buy_side
 sell_side = args.sell_side
 
+lock = False
+
 
 def perform_step(binance_price, okex_price, binance_client, okex_client, pair, step):
+    global lock
+
+    if lock:
+        return False
+
     try:
         if step == "1":
             return perform_step_one(binance_price, okex_price, binance_client, okex_client, pair)
@@ -51,8 +58,12 @@ def perform_step(binance_price, okex_price, binance_client, okex_client, pair, s
 def perform_step_one(binance_price, okex_price, binance_client, okex_client, pair):
     global buy_side
     global sell_side
+    global lock
 
     if (float(okex_price) - float(binance_price)) >= diff:
+
+        lock = True
+
         print_balance(binance_client, okex_client, "1")
 
         binance_success = buy_asset(binance_price, binance_client, pair)
@@ -63,9 +74,14 @@ def perform_step_one(binance_price, okex_price, binance_client, okex_client, pai
         buy_side = binance_side
         sell_side = okex_side
 
+        lock = False
+
         return binance_success and okex_success
 
     if (float(binance_price) - float(okex_price)) >= diff:
+
+        lock = True
+
         print_balance(binance_client, okex_client, "1")
 
         binance_success = sell_asset(binance_price, binance_client, pair)
@@ -76,14 +92,21 @@ def perform_step_one(binance_price, okex_price, binance_client, okex_client, pai
         buy_side = okex_side
         sell_side = binance_side
 
+        lock = False
+
         return binance_success and okex_success
 
     return False
 
 
 def perform_step_two(binance_price, okex_price, binance_client, okex_client, pair):
+    global lock
+
     if buy_side == binance_side:
         if (float(binance_price) - float(okex_price)) >= diff:
+
+            lock = True
+
             print_balance(binance_client, okex_client, "2")
 
             binance_success = sell_asset(binance_price, binance_client, pair)
@@ -91,16 +114,23 @@ def perform_step_two(binance_price, okex_price, binance_client, okex_client, pai
 
             assert_success(binance_success, okex_success)
 
+            lock = False
+
             return binance_success and okex_success
 
     if buy_side == okex_side:
         if (float(okex_price) - float(binance_price)) >= diff:
+
+            lock = True
+
             print_balance(binance_client, okex_client, "2")
 
             binance_success = buy_asset(binance_price, binance_client, pair)
             okex_success = sell_asset(okex_price, okex_client, pair)
 
             assert_success(binance_success, okex_success)
+
+            lock = False
 
             return binance_success and okex_success
 
