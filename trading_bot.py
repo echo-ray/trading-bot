@@ -38,8 +38,8 @@ if len(sys.argv) == 1:
 config = Config()
 balance = config.load_json("balance.json")
 
-binanceClient = BinanceClient(args.real, balance['binance'])
-okexClient = OkexClient(args.real, balance['okex'])
+binanceClient = BinanceClient(args.real, balance['binance'], args.pair)
+okexClient = OkexClient(args.real, balance['okex'], args.pair)
 
 
 class StateMachine:

@@ -33,7 +33,8 @@ class BinanceClient(Client):
             if msg["c"] == self.last_order_id:
                 if msg["X"] == ORDER_STATUS_FILLED:
                     self.calculate_new_balance(
-                        msg
+                        msg,
+                        self.pair,
                     )
                     self.on_order_filled()
                 if msg["X"] == ORDER_STATUS_CANCELED or msg["X"] == ORDER_STATUS_REJECTED:
@@ -94,7 +95,7 @@ class BinanceClient(Client):
         t.start()
         return True
 
-    def calculate_new_balance(self, order, pair=None, buy=None, price=None, quantity=None):
+    def calculate_new_balance(self, order, pair, buy=None, price=None, quantity=None):
         if order:
             asset, quote = split_pair(pair)
             asset_wallet = self.client.get_asset_balance(asset=asset)

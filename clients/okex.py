@@ -29,7 +29,8 @@ class OkexClient(Client):
         status = msg['data'][0]['status']
         if status == ORDER_FILLED:
             self.calculate_new_balance(
-                msg
+                msg,
+                self.pair
             )
             self.on_order_filled()
 
@@ -105,7 +106,7 @@ class OkexClient(Client):
         t.start()
         return True
 
-    def calculate_new_balance(self, order, pair=None, buy=None, price=None, quantity=None):
+    def calculate_new_balance(self, order, pair, buy=None, price=None, quantity=None):
         if order:
             asset, quote = split_pair(pair)
             asset_wallet = self.account_api.get_currency(asset)
