@@ -67,7 +67,7 @@ class BinanceClient(Client):
             price=price,
             newOrderRespType=ORDER_RESP_TYPE_RESULT
         )
-        success = order["status"] == ORDER_STATUS_FILLED
+        success = order["status"] == ORDER_STATUS_NEW
         if success:
             self.last_order_id = order["orderId"]
 
