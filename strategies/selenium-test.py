@@ -2,6 +2,13 @@ from termcolor import colored
 from core import split_pair, round_down
 from argparse import ArgumentParser
 import os
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import threading
+from PIL import ImageDraw
+import io
+from PIL import Image
+from PIL import ImageFont
 
 parser = ArgumentParser()
 parser.add_argument("-d", "--diff", dest="diff",
@@ -12,6 +19,8 @@ parser.add_argument("-fromside", "--buyside", dest="buy_side",
                     help="buy side", default="binance")
 parser.add_argument("-toside", "--sellside", dest="sell_side",
                     help="sell side", default="okex")
+parser.add_argument("-index", "--index", dest="index",
+                    help="screen shot index", default="1")
 
 args, extra = parser.parse_known_args()
 
@@ -34,19 +43,30 @@ sell_side = args.sell_side
 lock = False
 
 
+def create_driver():
+    chrome_options = Options()
+    chrome_options.binary_location = '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary'
+    # chrome_options.add_argument("user-data-dir=/Users/dmitrii_nikolaev/Library//Application Support/Google/Chrome Canary")
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-import threading
+    return webdriver.Chrome(executable_path=os.path.abspath("chromedriver"),   chrome_options=chrome_options)
 
-chrome_options = Options()
-chrome_options.binary_location = '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary'
-chrome_options.add_argument("user-data-dir=/Users/dmitrii_nikolaev/Library//Application Support/Google/Chrome Canary")
 
-driver = webdriver.Chrome(executable_path=os.path.abspath("chromedriver"),   chrome_options=chrome_options)
-driver.get("https://www.okex.com/spot/trade#product=eth_usdt")
-t = threading.Timer(0.2, lambda: driver.save_screenshot('./okex_instant.png'))
+def save_screen(screen, text, name):
+    img = Image.open(io.BytesIO(screen))
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.truetype('/Library/Fonts/Arial Bold.ttf', 46)
+    draw.text((100, 170), text, (255, 20, 20), font=font)
+    img.save("screens/{}_{}.png".format(name, args.index))
+
+
+okex_driver = create_driver()
+okex_driver.get("https://www.okex.com/spot/trade#product=eth_usdt")
+t = threading.Timer(0.2, lambda: okex_driver.save_screenshot('./okex_instant.png'))
 t.start()
+
+
+binance_driver = create_driver()
+binance_driver.get("https://www.binance.com/en/trade/ETH_USDT")
 
 
 def perform_step(binance_price, okex_price, binance_client, okex_client, pair, step):
@@ -81,9 +101,12 @@ def perform_step_one(binance_price, okex_price, binance_client, okex_client, pai
 
         print_balance(binance_client, okex_client, "1")
 
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!! okex price: {}".format(okex_price))
-        driver.save_screenshot('./okex.png')
-        driver.close()
+        okex_screen = okex_driver.get_screenshot_as_png()
+        binance_screen = binance_driver.get_screenshot_as_png()
+        save_screen(okex_screen, "!!!!!!!!!!!!!!!!!!! bot price: {}".format(okex_price), "okex")
+        save_screen(binance_screen, "!!!!!!!!!!!!!!!!!!! bot price: {}".format(binance_price), "binance")
+        okex_driver.close()
+        binance_driver.close()
         os._exit(1)
 
         binance_success = buy_asset(binance_price, binance_client, pair)
@@ -104,9 +127,12 @@ def perform_step_one(binance_price, okex_price, binance_client, okex_client, pai
 
         print_balance(binance_client, okex_client, "1")
 
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!! okex price: {}".format(okex_price))
-        driver.save_screenshot('./okex.png')
-        driver.close()
+        okex_screen = okex_driver.get_screenshot_as_png()
+        binance_screen = binance_driver.get_screenshot_as_png()
+        save_screen(okex_screen, "!!!!!!!!!!!!!!!!!!! bot price: {}".format(okex_price), "okex")
+        save_screen(binance_screen, "!!!!!!!!!!!!!!!!!!! bot price: {}".format(binance_price), "binance")
+        okex_driver.close()
+        binance_driver.close()
         os._exit(1)
 
         binance_success = sell_asset(binance_price, binance_client, pair)
