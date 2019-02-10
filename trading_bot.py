@@ -11,6 +11,7 @@ from clients.okex import OkexClient
 from termcolor import colored
 import importlib
 import sys
+import os
 
 parser = ArgumentParser()
 parser.add_argument("-p", "--pair", dest="pair",
@@ -33,7 +34,7 @@ args, extra = parser.parse_known_args()
 
 if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
-    sys.exit(1)
+    os._exit(1)
 
 config = Config()
 balance = config.load_json("balance.json")
@@ -57,7 +58,7 @@ class StateMachine:
 
     def run(self, binance_price, okex_price):
         if self.steps == args.steps:
-            sys.exit(1)
+            os._exit(1)
 
         print(colored("binance price: {} okex price: {}".format(binance_price, okex_price), 'cyan'))
 

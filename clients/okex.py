@@ -5,10 +5,9 @@ from api.okex.credentials import api_key, pass_phrase, secret_key
 from functools import reduce
 from api.okex.consts import *
 from api.okex.websocket import OkexWebSocket
-import sys
 import threading
 from core import split_pair
-
+import os
 
 class OkexClient(Client):
     def __init__(self, *args):
@@ -36,7 +35,7 @@ class OkexClient(Client):
 
         if status == ORDER_CANCELLED or status == ORDER_FAILURE:
             print("okex order: {} finished with error".format_map(self.current_order_id))
-            sys.exit(1)
+            os._exit(1)
 
     def subscribe_to_order_filled(self, cb):
         self.on_order_filled = cb

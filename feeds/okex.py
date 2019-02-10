@@ -10,6 +10,6 @@ class OkexFeed(Feed):
     def process_message(self, payload):
         msg = {
             'payload': payload,
-            'price': payload['data'][0]['last']
+            'price': payload['data'][0]['price']
         }
         self.e(msg)

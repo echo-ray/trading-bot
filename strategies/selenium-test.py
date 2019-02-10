@@ -34,6 +34,21 @@ sell_side = args.sell_side
 lock = False
 
 
+
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import threading
+
+chrome_options = Options()
+chrome_options.binary_location = '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary'
+chrome_options.add_argument("user-data-dir=/Users/dmitrii_nikolaev/Library//Application Support/Google/Chrome Canary")
+
+driver = webdriver.Chrome(executable_path=os.path.abspath("chromedriver"),   chrome_options=chrome_options)
+driver.get("https://www.okex.com/spot/trade#product=eth_usdt")
+t = threading.Timer(0.2, lambda: driver.save_screenshot('./okex_instant.png'))
+t.start()
+
+
 def perform_step(binance_price, okex_price, binance_client, okex_client, pair, step):
     global lock
 
@@ -66,6 +81,11 @@ def perform_step_one(binance_price, okex_price, binance_client, okex_client, pai
 
         print_balance(binance_client, okex_client, "1")
 
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!! okex price: {}".format(okex_price))
+        driver.save_screenshot('./okex.png')
+        driver.close()
+        os._exit(1)
+
         binance_success = buy_asset(binance_price, binance_client, pair)
         okex_success = sell_asset(okex_price, okex_client, pair)
 
@@ -83,6 +103,11 @@ def perform_step_one(binance_price, okex_price, binance_client, okex_client, pai
         lock = True
 
         print_balance(binance_client, okex_client, "1")
+
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!! okex price: {}".format(okex_price))
+        driver.save_screenshot('./okex.png')
+        driver.close()
+        os._exit(1)
 
         binance_success = sell_asset(binance_price, binance_client, pair)
         okex_success = buy_asset(okex_price, okex_client, pair)

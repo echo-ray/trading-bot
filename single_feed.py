@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from feeds.binance import BinanceFeed
 from feeds.okex import OkexFeed
 from termcolor import colored
+import os
 import sys
 import time
 
@@ -20,7 +21,7 @@ feeds = {
 
 if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
-    sys.exit(1)
+    os._exit(1)
 
 
 def on_value(value):

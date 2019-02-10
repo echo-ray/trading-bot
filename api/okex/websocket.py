@@ -168,7 +168,7 @@ def subscribe(api_key, passphrase, secret_key, channels, cb):
 
 class OkexWebSocket(metaclass=Singleton):
     def __init__(self, pair):
-        self.feed_table = "spot/ticker"
+        self.feed_table = "spot/trade"
         self.order_update_table = "spot/order"
         channels = [
             self.feed_table + ":" + pair,
