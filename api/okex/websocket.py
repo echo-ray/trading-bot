@@ -104,7 +104,7 @@ async def _subscribe(url, api_key, passphrase, secret_key, channels, cb):
         sub_param = {"op": "subscribe", "args": channels}
         sub_str = json.dumps(sub_param)
 
-        await  websocket.send(sub_str)
+        await websocket.send(sub_str)
 
         res = await websocket.recv()
         res = inflate(res)
@@ -131,7 +131,7 @@ async def _unsubscribe(url, api_key, passphrase, secret_key, channels):
 
         sub_param = {"op": "unsubscribe", "args": channels}
         sub_str = json.dumps(sub_param)
-        await  websocket.send(sub_str)
+        await websocket.send(sub_str)
         print(f"send: {sub_str}")
 
         res = await websocket.recv()
@@ -166,14 +166,58 @@ def subscribe(api_key, passphrase, secret_key, channels, cb):
     return t
 
 
+async def _subscribe_to_prod(channels, cb):
+    async with websockets.connect("wss://okexcomreal.bafang.com:10441/websocket") as websocket:
+        for channel in channels:
+            message = json.dumps({
+                "event": "addChannel",
+                "parameters": {
+                    "binary": "0",
+                    **channel
+                }
+            })
+            await websocket.send(message)
+
+        await websocket.recv()
+
+        while True:
+            res = await websocket.recv()
+            res = inflate(res)
+            cb(
+                json.loads(res.decode("utf-8"))
+            )
+
+
+def subscribe_to_prod(channels, cb):
+    loop = asyncio.new_event_loop()
+    t = Thread(
+        target=lambda loop: loop.run_until_complete(_subscribe_to_prod(channels, cb)),
+        args=(loop,)
+    )
+    t.daemon = True
+    t.start()
+    return t
+
+
 class OkexWebSocket(metaclass=Singleton):
     def __init__(self, pair):
-        self.feed_table = "spot/trade"
+        self.feed_table = "all_ticker_3s"
         self.order_update_table = "spot/order"
         channels = [
-            self.feed_table + ":" + pair,
             self.order_update_table + ":" + pair
         ]
+        prod_channels = [
+            {
+                "base": "eth",
+                "product": "spot",
+                "quote": "usdt",
+                "type": "ticker",
+            }
+        ]
+        subscribe_to_prod(
+            prod_channels,
+            self.process_prod_message,
+        )
         subscribe(
             creds.api_key,
             creds.pass_phrase,
@@ -192,8 +236,9 @@ class OkexWebSocket(metaclass=Singleton):
 
     def process_message(self, msg):
         if 'table' in msg:
-            if msg['table'] == self.feed_table:
-                self.on_feed(msg)
-
             if msg['table'] == self.order_update_table:
                 self.on_order_update(msg)
+
+    def process_prod_message(self, msg):
+        self.on_feed(msg)
+

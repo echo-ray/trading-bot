@@ -45,6 +45,8 @@ lock = False
 
 def create_driver():
     chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.96 Safari/537.36")
     chrome_options.binary_location = '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary'
     # chrome_options.add_argument("user-data-dir=/Users/dmitrii_nikolaev/Library//Application Support/Google/Chrome Canary")
 

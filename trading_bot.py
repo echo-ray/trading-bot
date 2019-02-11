@@ -88,12 +88,12 @@ def start_feed(Feed, onValue):
 
 
 binanceStream = Observable.create(lambda observer: start_feed(BinanceFeed, lambda value: observer.on_next(value)))
-okexStream = Observable.create(lambda observer: start_feed(OkexFeed, lambda value: observer.on_next(value)))
+okexStream = Observable.create(lambda observer: start_feed(OkexFeed, lambda value: observer.on_next(value))).debounce(400)
 
 Observable.combine_latest(
-    binanceStream,
     okexStream,
-    lambda b, o: (b, o)
+    binanceStream,
+    lambda o, b: (b, o)
 ).subscribe(on_stream_value)
 
 try:
@@ -101,5 +101,6 @@ try:
         time.sleep(0.1)
 except Exception:
     print("bot has been interrupted")
+    os._exit(1)
 
 
