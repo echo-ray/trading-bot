@@ -103,7 +103,7 @@ Observable.combine_latest(
 try:
     while True:
         time.sleep(0.1)
-except Exception:
+except KeyboardInterrupt:
     print("bot has been interrupted")
     os._exit(1)
 

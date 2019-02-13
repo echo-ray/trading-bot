@@ -10,10 +10,15 @@ class OkexFeed(Feed):
 
     def process_message(self, payload):
         data = payload["data"][0]
-        msg = {
-            "price": {
-                "sell": self.reduce_depth(["0"] + data["bids"], None),
-                "buy": self.reduce_depth(None, [str(sys.maxsize)] + data["asks"]),
+        sell_empty = "0"
+        buy_empty = str(sys.maxsize)
+        sell = self.reduce_depth([sell_empty] + data["bids"], None)
+        buy = self.reduce_depth(None, [buy_empty] + data["asks"])
+        if not sell == sell_empty and not buy == buy_empty:
+            msg = {
+                "price": {
+                    "sell": sell,
+                    "buy": buy,
+                }
             }
-        }
-        self.e(msg)
+            self.e(msg)
