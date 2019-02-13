@@ -29,6 +29,9 @@ parser.add_argument("-stp", "--current-step", dest="current_step",
 parser.add_argument("-r", "--real", dest="real", action="store_true",
                     help="make real trades", default=False)
 
+parser.add_argument("-log", "--log", dest="log", action="store_true",
+                    help="log prices", default=False)
+
 
 args, extra = parser.parse_known_args()
 
@@ -60,7 +63,8 @@ class StateMachine:
         if self.steps == args.steps:
             os._exit(1)
 
-        print(colored("binance price: {} okex price: {}".format(binance_price, okex_price), 'cyan'))
+        if args.log:
+            print(colored("binance price: {} okex price: {}".format(binance_price, okex_price), 'cyan'))
 
         if self.perform_step(binance_price, okex_price, binanceClient, okexClient, args.pair, self.step):
             self.next()

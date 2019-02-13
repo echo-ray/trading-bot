@@ -5,7 +5,7 @@ import os
 
 parser = ArgumentParser()
 parser.add_argument("-d", "--diff", dest="diff",
-                    help="diff between prices to execute step", default="0.03")
+                    help="diff between prices to execute step", default=None)
 parser.add_argument("-qty", "--quantity", dest="quantity",
                     help="asset quantity to trade", default="1")
 parser.add_argument("-fromside", "--buyside", dest="buy_side",
@@ -24,7 +24,6 @@ transitions = {
     "2.6": "1"
 }
 
-diff = float(args.diff)
 trade_quantity = float(args.quantity)
 binance_side = "binance"
 okex_side = "okex"
@@ -32,6 +31,13 @@ buy_side = args.buy_side
 sell_side = args.sell_side
 
 lock = False
+
+
+def calculate_diff(binance_price, okex_price):
+    if args.diff:
+        return float(args.diff)
+
+    return (((float(binance_price) + float(okex_price)) / 2) * 0.0025) * 1.5
 
 
 def perform_step(binance_price, okex_price, binance_client, okex_client, pair, step):
@@ -60,14 +66,15 @@ def perform_step_one(binance_price, okex_price, binance_client, okex_client, pai
     global sell_side
     global lock
 
-    if (float(okex_price) - float(binance_price)) >= diff:
+    okex_sell_diff = calculate_diff(binance_price["buy"], okex_price["sell"])
+    if (float(okex_price["sell"]) - float(binance_price["buy"])) >= okex_sell_diff:
 
         lock = True
 
         print_balance(binance_client, okex_client, "1")
 
-        binance_success = buy_asset(binance_price, binance_client, pair)
-        okex_success = sell_asset(okex_price, okex_client, pair)
+        binance_success = buy_asset(binance_price["buy"], binance_client, pair)
+        okex_success = sell_asset(okex_price["sell"], okex_client, pair)
 
         assert_success(binance_success, okex_success)
 
@@ -78,14 +85,15 @@ def perform_step_one(binance_price, okex_price, binance_client, okex_client, pai
 
         return binance_success and okex_success
 
-    if (float(binance_price) - float(okex_price)) >= diff:
+    binance_sell_diff = calculate_diff(binance_price["sell"], okex_price["buy"])
+    if (float(binance_price["sell"]) - float(okex_price["buy"])) >= binance_sell_diff:
 
         lock = True
 
         print_balance(binance_client, okex_client, "1")
 
-        binance_success = sell_asset(binance_price, binance_client, pair)
-        okex_success = buy_asset(okex_price, okex_client, pair)
+        binance_success = sell_asset(binance_price["sell"], binance_client, pair)
+        okex_success = buy_asset(okex_price["buy"], okex_client, pair)
 
         assert_success(binance_success, okex_success)
 
@@ -103,14 +111,15 @@ def perform_step_two(binance_price, okex_price, binance_client, okex_client, pai
     global lock
 
     if buy_side == binance_side:
-        if (float(binance_price) - float(okex_price)) >= diff:
+        binance_sell_diff = calculate_diff(binance_price["sell"], okex_price["buy"])
+        if (float(binance_price["sell"]) - float(okex_price["buy"])) >= binance_sell_diff:
 
             lock = True
 
             print_balance(binance_client, okex_client, "2")
 
-            binance_success = sell_asset(binance_price, binance_client, pair)
-            okex_success = buy_asset(okex_price, okex_client, pair)
+            binance_success = sell_asset(binance_price["sell"], binance_client, pair)
+            okex_success = buy_asset(okex_price["buy"], okex_client, pair)
 
             assert_success(binance_success, okex_success)
 
@@ -119,14 +128,15 @@ def perform_step_two(binance_price, okex_price, binance_client, okex_client, pai
             return binance_success and okex_success
 
     if buy_side == okex_side:
-        if (float(okex_price) - float(binance_price)) >= diff:
+        okex_sell_diff = calculate_diff(binance_price["buy"], okex_price["sell"])
+        if (float(okex_price["sell"]) - float(binance_price["buy"])) >= okex_sell_diff:
 
             lock = True
 
             print_balance(binance_client, okex_client, "2")
 
-            binance_success = buy_asset(binance_price, binance_client, pair)
-            okex_success = sell_asset(okex_price, okex_client, pair)
+            binance_success = buy_asset(binance_price["buy"], binance_client, pair)
+            okex_success = sell_asset(okex_price["sell"], okex_client, pair)
 
             assert_success(binance_success, okex_success)
 

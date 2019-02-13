@@ -1,19 +1,19 @@
 from feeds.feed import Feed
 from api.okex.websocket import OkexWebSocket
+import sys
 
 
 class OkexFeed(Feed):
     def feed(self, pair):
-        self.pair = pair
         ws = OkexWebSocket(pair)
         ws.subscribe_to_feed(self.process_message)
 
     def process_message(self, payload):
-        # print("------------------------------------------------------------")
-        # print(payload)
-        # print("------------------------------------------------------------")
+        data = payload["data"][0]
         msg = {
-            'payload': payload[0]['data'],
-            'price': payload[0]['data']['last']
+            "price": {
+                "sell": self.reduce_depth(["0"] + data["bids"], None),
+                "buy": self.reduce_depth(None, [str(sys.maxsize)] + data["asks"]),
+            }
         }
         self.e(msg)

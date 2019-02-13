@@ -201,23 +201,12 @@ def subscribe_to_prod(channels, cb):
 
 class OkexWebSocket(metaclass=Singleton):
     def __init__(self, pair):
-        self.feed_table = "all_ticker_3s"
+        self.feed_table = "spot/depth"
         self.order_update_table = "spot/order"
         channels = [
-            self.order_update_table + ":" + pair
+            self.order_update_table + ":" + pair,
+            self.feed_table + ":" + pair,
         ]
-        prod_channels = [
-            {
-                "base": "eth",
-                "product": "spot",
-                "quote": "usdt",
-                "type": "ticker",
-            }
-        ]
-        subscribe_to_prod(
-            prod_channels,
-            self.process_prod_message,
-        )
         subscribe(
             creds.api_key,
             creds.pass_phrase,
@@ -239,6 +228,6 @@ class OkexWebSocket(metaclass=Singleton):
             if msg['table'] == self.order_update_table:
                 self.on_order_update(msg)
 
-    def process_prod_message(self, msg):
-        self.on_feed(msg)
+            if msg['table'] == self.feed_table:
+                self.on_feed(msg)
 
