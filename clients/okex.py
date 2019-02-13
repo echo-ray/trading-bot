@@ -9,6 +9,7 @@ import threading
 from core import split_pair
 import os
 
+
 class OkexClient(Client):
     def __init__(self, *args):
         Client.__init__(self, *args)
@@ -26,16 +27,18 @@ class OkexClient(Client):
 
     def on_order_update(self, msg):
         status = msg['data'][0]['status']
-        if status == ORDER_FILLED:
-            self.calculate_new_balance(
-                msg,
-                self.pair
-            )
-            self.on_order_filled()
+        order_id = msg['data'][0]['order_id']
+        if order_id == self.current_order_id:
+            if status == ORDER_FILLED:
+                self.calculate_new_balance(
+                    msg,
+                    self.pair
+                )
+                self.on_order_filled()
 
-        if status == ORDER_CANCELLED or status == ORDER_FAILURE:
-            print("okex order: {} finished with error".format_map(self.current_order_id))
-            os._exit(1)
+            if status == ORDER_CANCELLED or status == ORDER_FAILURE:
+                print("okex order: {} finished with error".format_map(self.current_order_id))
+                os._exit(1)
 
     def subscribe_to_order_filled(self, cb):
         self.on_order_filled = cb
@@ -86,6 +89,7 @@ class OkexClient(Client):
             price
         )
         if resp['result']:
+            self.current_order_id = resp["order_id"]
             if not self.ws:
                 self.ws = OkexWebSocket(pair)
                 self.ws.subscribe_to_order_update(self.on_order_update)
