@@ -13,6 +13,7 @@ args, extra = parser.parse_known_args()
 class Feed(Config):
     def __init__(self):
         self.e = Event()
+        self.min_qty = args.quantity
 
     def subscribe(self, cb):
         self.e.append(cb)

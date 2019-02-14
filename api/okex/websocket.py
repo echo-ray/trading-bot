@@ -10,6 +10,7 @@ import hashlib
 from threading import Thread
 from lib.singleton import Singleton
 import api.okex.credentials as creds
+from pprint import pprint
 
 
 def get_server_time():
@@ -205,8 +206,21 @@ class OkexWebSocket(metaclass=Singleton):
         self.order_update_table = "spot/order"
         channels = [
             self.order_update_table + ":" + pair,
-            self.feed_table + ":" + pair,
         ]
+        base, quote = pair.lower().split("-")
+        prod_channels = [
+            {
+                "base": base,
+                "binary": "0",
+                "product": "spot",
+                "quote": quote,
+                "type": "depth",
+            }
+        ]
+        subscribe_to_prod(
+            prod_channels,
+            self.process_prod_message
+        )
         subscribe(
             creds.api_key,
             creds.pass_phrase,
@@ -229,5 +243,11 @@ class OkexWebSocket(metaclass=Singleton):
                 self.on_order_update(msg)
 
             if msg['table'] == self.feed_table:
+                self.on_feed(msg)
+
+    def process_prod_message(self, payload):
+        msg = payload[0]
+        if 'type' in msg:
+            if msg['type'] == "depth":
                 self.on_feed(msg)
 
