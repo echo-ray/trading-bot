@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from feeds.binance import BinanceFeed
 from feeds.okex import OkexFeed
+from feeds.bittrex import BittrexFeed
 from termcolor import colored
 import os
 import sys
@@ -17,6 +18,7 @@ args, extra = parser.parse_known_args()
 feeds = {
     "okex": OkexFeed,
     "binance": BinanceFeed,
+    "bittrex": BittrexFeed,
 }
 
 if len(sys.argv) == 1:
@@ -35,5 +37,5 @@ feed.feed(args.pair)
 try:
     while True:
         time.sleep(0.1)
-except Exception:
+except KeyboardInterrupt:
     os._exit(1)
