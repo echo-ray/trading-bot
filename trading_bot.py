@@ -3,11 +3,13 @@
 from argparse import ArgumentParser
 from feeds.binance import BinanceFeed
 from feeds.okex import OkexFeed
+from feeds.bittrex import BittrexFeed
 from rx import Observable
 import time
 from lib.config import Config
 from clients.binance import BinanceClient
 from clients.okex import OkexClient
+from clients.bittrex import BittrexClient
 from termcolor import colored
 import importlib
 import sys
@@ -32,8 +34,25 @@ parser.add_argument("-r", "--real", dest="real", action="store_true",
 parser.add_argument("-log", "--log", dest="log", action="store_true",
                     help="log prices", default=False)
 
+parser.add_argument('-exc', action='append', dest='exchanges',
+                    default=[],
+                    help='exchanges list',
+                    )
+
 
 args, extra = parser.parse_known_args()
+
+feeds = {
+    "binance": BinanceFeed,
+    "okex": OkexFeed,
+    "bittrex": BittrexFeed
+}
+
+clients = {
+    "binance": BinanceClient,
+    "okex": OkexClient,
+    "bittrex": BittrexClient
+}
 
 if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
@@ -42,8 +61,10 @@ if len(sys.argv) == 1:
 config = Config()
 balance = config.load_json("balance.json")
 
-binanceClient = BinanceClient(args.real, balance['binance'], args.pair)
-okexClient = OkexClient(args.real, balance['okex'], args.pair)
+leftExc, rightExc = args.exchanges
+
+leftClient = clients[leftExc](args.real, balance[leftExc], args.pair)
+rightClient = clients[rightExc](args.real, balance[rightExc], args.pair)
 
 
 class StateMachine:
@@ -56,17 +77,17 @@ class StateMachine:
         else:
             self.step = next(iter(self.transitions))
         self.steps = 0
-        okexClient.subscribe_to_order_filled(self.next)
-        binanceClient.subscribe_to_order_filled(self.next)
+        leftClient.subscribe_to_order_filled(self.next)
+        rightClient.subscribe_to_order_filled(self.next)
 
-    def run(self, binance_price, okex_price):
+    def run(self, left_price, right_price):
         if self.steps == args.steps:
             os._exit(1)
 
         if args.log:
-            print(colored("binance price: {} okex price: {}".format(binance_price, okex_price), 'cyan'))
+            print(colored("{} price: {} {} price: {}".format(leftExc, left_price, rightExc, right_price), 'cyan'))
 
-        if self.perform_step(binance_price, okex_price, binanceClient, okexClient, args.pair, self.step):
+        if self.perform_step(left_price, right_price, leftClient, rightClient, args.pair, self.step):
             self.next()
 
     def next(self):
@@ -81,8 +102,8 @@ stateMachine = StateMachine()
 
 
 def on_stream_value(v):
-    binance,okex = v
-    stateMachine.run(binance['price'], okex['price'])
+    left, right = v
+    stateMachine.run(left['price'], right['price'])
 
 
 def start_feed(Feed, onValue):
@@ -91,12 +112,15 @@ def start_feed(Feed, onValue):
     feed.feed(args.pair)
 
 
-binanceStream = Observable.create(lambda observer: start_feed(BinanceFeed, lambda value: observer.on_next(value)))
-okexStream = Observable.create(lambda observer: start_feed(OkexFeed, lambda value: observer.on_next(value)))
+leftFeed = feeds[leftExc]
+rightFeed = feeds[rightExc]
+
+leftStream = Observable.create(lambda observer: start_feed(leftFeed, lambda value: observer.on_next(value)))
+rightStream = Observable.create(lambda observer: start_feed(rightFeed, lambda value: observer.on_next(value)))
 
 Observable.combine_latest(
-    okexStream,
-    binanceStream,
+    leftStream,
+    rightStream,
     lambda o, b: (b, o)
 ).subscribe(on_stream_value)
 

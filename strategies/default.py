@@ -9,9 +9,13 @@ parser.add_argument("-d", "--diff", dest="diff",
 parser.add_argument("-qty", "--quantity", dest="quantity",
                     help="asset quantity to trade", default="1")
 parser.add_argument("-fromside", "--buyside", dest="buy_side",
-                    help="buy side", default="binance")
+                    help="buy side", default=None)
 parser.add_argument("-toside", "--sellside", dest="sell_side",
-                    help="sell side", default="okex")
+                    help="sell side", default=None)
+parser.add_argument('-exc', action='append', dest='exchanges',
+                    default=[],
+                    help='exchanges list',
+                    )
 
 args, extra = parser.parse_known_args()
 
@@ -24,23 +28,23 @@ transitions = {
     "2.6": "1"
 }
 
+leftExc, rightExc = args.exchanges
+
 trade_quantity = float(args.quantity)
-binance_side = "binance"
-okex_side = "okex"
-buy_side = args.buy_side
-sell_side = args.sell_side
+buy_side = args.buy_side if args.buy_side else leftExc
+sell_side = args.sell_side if args.sell_side else rightExc
 
 lock = False
 
 
-def calculate_diff(binance_price, okex_price):
+def calculate_diff(left_price, right_price):
     if args.diff:
         return float(args.diff)
 
-    return (((float(binance_price) + float(okex_price)) / 2) * 0.0025) * 1.5
+    return (((float(left_price) + float(right_price)) / 2) * 0.0025) * 1.5
 
 
-def perform_step(binance_price, okex_price, binance_client, okex_client, pair, step):
+def perform_step(left_price, right_price, left_client, right_client, pair, step):
     global lock
 
     if lock:
@@ -48,9 +52,9 @@ def perform_step(binance_price, okex_price, binance_client, okex_client, pair, s
 
     try:
         if step == "1":
-            return perform_step_one(binance_price, okex_price, binance_client, okex_client, pair)
+            return perform_step_one(left_price, right_price, left_client, right_client, pair)
         if step == "2":
-            return perform_step_two(binance_price, okex_price, binance_client, okex_client, pair)
+            return perform_step_two(left_price, right_price, left_client, right_client, pair)
         if step.find(".") > -1:
             print(colored("waiting for order(s) execution", "cyan"))
             return False
@@ -61,100 +65,100 @@ def perform_step(binance_price, okex_price, binance_client, okex_client, pair, s
     return False
 
 
-def perform_step_one(binance_price, okex_price, binance_client, okex_client, pair):
+def perform_step_one(left_price, right_price, left_client, right_client, pair):
     global buy_side
     global sell_side
     global lock
 
-    okex_sell_diff = calculate_diff(binance_price["buy"], okex_price["sell"])
-    if (float(okex_price["sell"]) - float(binance_price["buy"])) >= okex_sell_diff:
+    right_sell_diff = calculate_diff(left_price["buy"], right_price["sell"])
+    if (float(right_price["sell"]) - float(left_price["buy"])) >= right_sell_diff:
 
         lock = True
 
-        print_balance(binance_client, okex_client, "1")
+        print_balance(left_client, right_client, "1")
 
-        binance_success = buy_asset(binance_price["buy"], binance_client, pair)
-        okex_success = sell_asset(okex_price["sell"], okex_client, pair)
+        left_side_success = buy_asset(left_price["buy"], left_client, pair)
+        right_side_success = sell_asset(right_price["sell"], right_client, pair)
 
-        assert_success(binance_success, okex_success)
+        assert_success(left_side_success, right_side_success)
 
-        buy_side = binance_side
-        sell_side = okex_side
+        buy_side = leftExc
+        sell_side = rightExc
 
         lock = False
 
-        return binance_success and okex_success
+        return left_side_success and right_side_success
 
-    binance_sell_diff = calculate_diff(binance_price["sell"], okex_price["buy"])
-    if (float(binance_price["sell"]) - float(okex_price["buy"])) >= binance_sell_diff:
+    left_sell_diff = calculate_diff(left_price["sell"], right_price["buy"])
+    if (float(left_price["sell"]) - float(right_price["buy"])) >= left_sell_diff:
 
         lock = True
 
-        print_balance(binance_client, okex_client, "1")
+        print_balance(left_client, right_client, "1")
 
-        binance_success = sell_asset(binance_price["sell"], binance_client, pair)
-        okex_success = buy_asset(okex_price["buy"], okex_client, pair)
+        left_side_success = sell_asset(left_price["sell"], left_client, pair)
+        right_side_success = buy_asset(right_price["buy"], right_client, pair)
 
-        assert_success(binance_success, okex_success)
+        assert_success(left_side_success, right_side_success)
 
-        buy_side = okex_side
-        sell_side = binance_side
+        buy_side = rightExc
+        sell_side = leftExc
 
         lock = False
 
-        return binance_success and okex_success
+        return left_side_success and right_side_success
 
     return False
 
 
-def perform_step_two(binance_price, okex_price, binance_client, okex_client, pair):
+def perform_step_two(left_price, right_price, left_client, right_client, pair):
     global lock
 
-    if buy_side == binance_side:
-        binance_sell_diff = calculate_diff(binance_price["sell"], okex_price["buy"])
-        if (float(binance_price["sell"]) - float(okex_price["buy"])) >= binance_sell_diff:
+    if buy_side == leftExc:
+        left_sell_diff = calculate_diff(left_price["sell"], right_price["buy"])
+        if (float(left_price["sell"]) - float(right_price["buy"])) >= left_sell_diff:
 
             lock = True
 
-            print_balance(binance_client, okex_client, "2")
+            print_balance(left_client, right_client, "2")
 
-            binance_success = sell_asset(binance_price["sell"], binance_client, pair)
-            okex_success = buy_asset(okex_price["buy"], okex_client, pair)
+            left_side_success = sell_asset(left_price["sell"], left_client, pair)
+            right_side_success = buy_asset(right_price["buy"], right_client, pair)
 
-            assert_success(binance_success, okex_success)
+            assert_success(left_side_success, right_side_success)
 
             lock = False
 
-            return binance_success and okex_success
+            return left_side_success and right_side_success
 
-    if buy_side == okex_side:
-        okex_sell_diff = calculate_diff(binance_price["buy"], okex_price["sell"])
-        if (float(okex_price["sell"]) - float(binance_price["buy"])) >= okex_sell_diff:
+    if buy_side == rightExc:
+        right_sell_diff = calculate_diff(left_price["buy"], right_price["sell"])
+        if (float(right_price["sell"]) - float(left_price["buy"])) >= right_sell_diff:
 
             lock = True
 
-            print_balance(binance_client, okex_client, "2")
+            print_balance(left_client, right_client, "2")
 
-            binance_success = buy_asset(binance_price["buy"], binance_client, pair)
-            okex_success = sell_asset(okex_price["sell"], okex_client, pair)
+            left_side_success = buy_asset(left_price["buy"], left_client, pair)
+            right_side_success = sell_asset(right_price["sell"], right_client, pair)
 
-            assert_success(binance_success, okex_success)
+            assert_success(left_side_success, right_side_success)
 
             lock = False
 
-            return binance_success and okex_success
+            return left_side_success and right_side_success
 
     return False
 
 
-def assert_success(binance_success, okex_success):
-    if binance_success:
-        if not okex_success:
-            raise Exception("binance order succedeed while okex doesn't")
+def assert_success(left_side_success, right_side_success):
+    if left_side_success:
+        if not right_side_success:
+            raise Exception("{} order succedeed while {} doesn't".format(leftExc, rightExc))
 
-    if okex_success:
-        if not binance_success:
-            raise Exception("okex order succedeed while binance doesn't")
+    if right_side_success:
+        if not left_side_success:
+            raise Exception("{} order succedeed while {} doesn't".format(rightExc, leftExc))
 
 
 def print_balance(client_one, client_two, step):
