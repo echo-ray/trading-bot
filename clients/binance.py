@@ -71,7 +71,11 @@ class BinanceClient(Client):
         status = order["status"]
         success = status != ORDER_STATUS_CANCELED and status != ORDER_STATUS_REJECTED
         if success:
-            self.last_order_id = order["clientOrderId"]
+            if status == ORDER_STATUS_FILLED:
+                self.last_order_id = None
+                self.tick_order_filled()
+            else:
+                self.last_order_id = order["clientOrderId"]
         else:
             print("binance order failed: {}".format(order))
 
@@ -94,9 +98,12 @@ class BinanceClient(Client):
             price,
             count
         )
+        self.tick_order_filled()
+        return True
+
+    def tick_order_filled(self):
         t = threading.Timer(0.1, self.on_order_filled)
         t.start()
-        return True
 
     def calculate_new_balance(self, order, pair, buy=None, price=None, quantity=None):
         if order:
