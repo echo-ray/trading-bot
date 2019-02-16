@@ -174,7 +174,7 @@ def buy_asset(price, client, pair):
         2
     )
 
-    print(colored("buying {} of {} on {}".format(buy_count, asset, client.exchange), "green"))
+    print(colored("buying {} of {} on {} for {}".format(buy_count, asset, client.exchange, price), "green"))
 
     return client.buy(
         price,
@@ -189,7 +189,7 @@ def sell_asset(price, client, pair):
         trade_quantity,
         2
     )
-    print(colored("selling {} of {} on {}".format(sell_count, asset, client.exchange), "red"))
+    print(colored("selling {} of {} on {} for {}".format(sell_count, asset, client.exchange, price), "red"))
 
     return client.sell(
         price,

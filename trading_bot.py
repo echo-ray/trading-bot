@@ -121,7 +121,7 @@ rightStream = Observable.create(lambda observer: start_feed(rightFeed, lambda va
 Observable.combine_latest(
     leftStream,
     rightStream,
-    lambda o, b: (b, o)
+    lambda l, r: (l, r)
 ).subscribe(on_stream_value)
 
 try:
