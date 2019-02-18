@@ -38,14 +38,14 @@ class Feed(Config):
     def compare_bid(self, acc, bid):
         if self.check_volume(bid):
             price = self.ask_bid_price(bid)
-            return acc if float(acc) > float(price) else price
+            return acc if float(acc) > price else price
 
         return acc
 
     def compare_ask(self, acc, ask):
         if self.check_volume(ask):
             price = self.ask_bid_price(ask)
-            return acc if float(acc) < float(price) else price
+            return acc if float(acc) < price else price
 
         return acc
 

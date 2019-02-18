@@ -20,8 +20,8 @@ class BinanceFeed(Feed):
         if not sell == sell_empty and not buy == buy_empty:
             msg = {
                 "price": {
-                    "sell": sell,
-                    "buy": buy,
+                    "sell": str(sell),
+                    "buy": str(buy),
                 }
             }
             self.e(msg)
