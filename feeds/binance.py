@@ -13,8 +13,8 @@ class BinanceFeed(Feed):
         return bm
 
     def process_message(self, payload):
-        sell_empty = "0"
-        buy_empty = str(sys.maxsize)
+        sell_empty = 0
+        buy_empty = sys.maxsize
         sell = self.reduce_depth([sell_empty] + payload["bids"], None)
         buy = self.reduce_depth(None, [buy_empty] + payload["asks"])
         if not sell == sell_empty and not buy == buy_empty:

@@ -12,17 +12,11 @@ class OkexFeed(Feed):
 
     def process_message(self, payload):
         data = payload["data"]
-        min_sell = self.min_depth(data['asks'])
-        min_buy = self.min_depth(data['bids'])
-        if min_buy and min_sell:
-            buy = reduce(
-                lambda acc, ask: acc if acc < ask['price'] and ask['totalSize'] > "0" else acc,
-                [min_sell] + data['asks'],
-            )
-            sell = reduce(
-                lambda acc, bid: acc if acc > bid['price'] and bid['totalSize'] > "0" else acc,
-                [min_buy] + data['bids'],
-            )
+        sell_empty = 0
+        buy_empty = sys.maxsize
+        sell = self.reduce_depth([sell_empty] + data["bids"], None)
+        buy = self.reduce_depth(None, [buy_empty] + data["asks"])
+        if not sell == sell_empty and not buy == buy_empty:
             msg = {
                 "price": {
                     "sell": sell,
@@ -31,8 +25,8 @@ class OkexFeed(Feed):
             }
             self.e(msg)
 
-    def min_depth(self, arr):
-        for el in arr:
-            if el['totalSize'] > self.min_qty:
-                return el['price']
-        return None
+    def check_volume(self, depth_item):
+        return float(depth_item["totalSize"]) >= self.min_qty
+
+    def ask_bid_price(self, ask_bid):
+        return float(ask_bid["price"])

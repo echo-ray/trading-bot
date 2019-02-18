@@ -4,7 +4,6 @@ from argparse import ArgumentParser
 from feeds.binance import BinanceFeed
 from feeds.okex import OkexFeed
 from feeds.bittrex import BittrexFeed
-from rx import Observable
 import time
 from lib.config import Config
 from clients.binance import BinanceClient
@@ -14,6 +13,7 @@ from termcolor import colored
 import importlib
 import sys
 import os
+from time import gmtime, strftime
 
 parser = ArgumentParser()
 parser.add_argument("-p", "--pair", dest="pair",
@@ -115,14 +115,39 @@ def start_feed(Feed, onValue):
 leftFeed = feeds[leftExc]
 rightFeed = feeds[rightExc]
 
-leftStream = Observable.create(lambda observer: start_feed(leftFeed, lambda value: observer.on_next(value)))
-rightStream = Observable.create(lambda observer: start_feed(rightFeed, lambda value: observer.on_next(value)))
 
-Observable.combine_latest(
-    leftStream,
-    rightStream,
-    lambda l, r: (l, r)
-).subscribe(on_stream_value)
+class Combiner:
+    def __init__(self, on_combined_value):
+        self.left = None
+        self.right = None
+        self.on_combined_value = on_combined_value
+
+    def on_left(self, value):
+        # print("left value {}".format(strftime("%H:%M:%S", gmtime())))
+        self.left = value
+
+        if self.right:
+            self.emit()
+
+    def on_right(self, value):
+        # print("right value {}".format(strftime("%H:%M:%S", gmtime())))
+        self.right = value
+
+        if self.left:
+            self.emit()
+
+    def emit(self):
+        # print("emit value {}".format(strftime("%H:%M:%S", gmtime())))
+        left = self.left
+        right = self.right
+        self.left = None
+        self.right = None
+        self.on_combined_value((left, right))
+
+
+combiner = Combiner(on_stream_value)
+start_feed(leftFeed, combiner.on_left)
+start_feed(rightFeed, combiner.on_right)
 
 try:
     while True:
