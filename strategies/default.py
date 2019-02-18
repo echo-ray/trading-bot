@@ -178,7 +178,7 @@ def buy_asset(price, client, pair):
 
     return client.buy(
         price,
-        str(buy_count),
+        str(round_down(buy_count, 8)),
         pair
     )
 
@@ -193,6 +193,6 @@ def sell_asset(price, client, pair):
 
     return client.sell(
         price,
-        str(sell_count),
+        str(round_down(sell_count, 8)),
         pair
     )
