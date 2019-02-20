@@ -160,20 +160,6 @@ async def _unsubscribe_without_login(url, channels):
         print(f"{res}")
 
 
-url = 'wss://real.okex.com:10442/ws/v3'
-
-
-def subscribe(api_key, passphrase, secret_key, channels, cb):
-    loop = asyncio.new_event_loop()
-    t = Thread(
-        target=lambda loop: loop.run_until_complete(_subscribe(url, api_key, passphrase, secret_key, channels, cb)),
-        args=(loop,)
-    )
-    t.daemon = True
-    t.start()
-    return t
-
-
 class OkexReconnectingClientFactory(ReconnectingClientFactory):
 
     # set initial delay to a short time
@@ -186,16 +172,35 @@ class OkexReconnectingClientFactory(ReconnectingClientFactory):
 
 class OkexClientProtocol(WebSocketClientProtocol):
     def onOpen(self):
-        if self.factory.subscribe_msg:
-            self.sendMessage(self.factory.subscribe_msg)
+        if self.factory.login:
+            timestamp = server_timestamp()
+            login_str = login_params(
+                str(timestamp),
+                self.factory.login["api"],
+                self.factory.login["pass_phrase"],
+                self.factory.login["secret"]
+            ).encode("utf8")
+            self.sendMessage(login_str)
+        else:
+            self.subscribe()
 
     def onConnect(self, response):
         # reset the delay after reconnecting
         self.factory.resetDelay()
 
-    def onMessage(self, payload, isBinary):
-        payload_obj = json.loads(inflate(payload).decode('utf8'))
-        self.factory.callback(payload_obj)
+    def onMessage(self, payload, is_binary):
+        payload_json = json.loads(inflate(payload).decode('utf8'))
+
+        if "event" in payload_json:
+            if payload_json["event"] == "login" and payload_json["success"]:
+                self.subscribe()
+        else:
+            self.factory.callback(payload_json)
+
+    def subscribe(self):
+        sub_param = {"op": "subscribe", "args": self.factory.channels}
+        sub_str = json.dumps(sub_param).encode("utf8")
+        self.sendMessage(sub_str)
 
 
 class OkexClientFactory(WebSocketClientFactory, OkexReconnectingClientFactory):
@@ -217,9 +222,11 @@ class OkexClientFactory(WebSocketClientFactory, OkexReconnectingClientFactory):
 
 
 class OkexWebsocketManager(Thread):
-    def __init__(self):
+    def __init__(self, api, pass_phrase, secret):
         super().__init__()
-        self._conns = {}
+        self.api = api
+        self.pass_phrase = pass_phrase
+        self.secret = secret
 
     def run(self):
         try:
@@ -228,92 +235,50 @@ class OkexWebsocketManager(Thread):
             # Ignore error about reactor already running
             pass
 
-    def _start_socket(self, path, callback, subscribe_msg, socket_url):
+    def start_socket(self, callback, channels, login, socket_url):
         factory_url = socket_url
         factory = OkexClientFactory(factory_url)
         factory.protocol = OkexClientProtocol
         factory.callback = callback
         factory.reconnect = True
         context_factory = ssl.ClientContextFactory()
-        factory.subscribe_msg = subscribe_msg
-
-        self._conns[path] = connectWS(factory, context_factory)
-        return self._conns[path]
-
-    def start_depth_socket(self, pair, cb, socket_url="wss://okexcomreal.bafang.com:10441/websocket"):
-        path = "@depth/{}".format(pair)
-        base, quote = pair.lower().split("-")
-        add_channel_msg = json.dumps({
-            "event": "addChannel",
-            "parameters": {
-                "base": base,
-                "binary": "0",
-                "product": "spot",
-                "quote": quote,
-                "type": "depth",
+        factory.channels = channels
+        if login:
+            factory.login = {
+                "api": self.api,
+                "pass_phrase": self.pass_phrase,
+                "secret": self.secret
             }
-        })
-        subscribe_msg = add_channel_msg.encode("utf8")
-        self._start_socket(path, cb, subscribe_msg, socket_url)
 
-    def stop_socket(self, conn_key):
-        """Stop a websocket given the connection key
+        return connectWS(factory, context_factory)
 
-        :param conn_key: Socket connection key
-        :type conn_key: string
-
-        :returns: connection key string if successful, False otherwise
-        """
-        if conn_key not in self._conns:
-            return
-
-        # disable reconnecting if we are closing
-        self._conns[conn_key].factory = WebSocketClientFactory(self.STREAM_URL + 'tmp_path')
-        self._conns[conn_key].disconnect()
-        del(self._conns[conn_key])
-
-        # check if we have a user stream socket
-        if len(conn_key) >= 60 and conn_key[:60] == self._user_listen_key:
-            self._stop_user_socket()
-
-    def _stop_user_socket(self):
-        if not self._user_listen_key:
-            return
-        # stop the timer
-        self._user_timer.cancel()
-        self._user_timer = None
-        self._user_listen_key = None
-
-    def close(self):
-        """Close all connections
-
-        """
-        keys = set(self._conns.keys())
-        for key in keys:
-            self.stop_socket(key)
-
-        self._conns = {}
+    def subscribe(self, channels, cb, socket_url="wss://real.okex.com:10442/ws/v3"):
+        self.start_socket(
+            cb,
+            channels,
+            True,
+            socket_url,
+        )
 
 
 class OkexWebSocket(metaclass=Singleton):
     def __init__(self, pair):
         self.order_update_table = "spot/order"
+        self.feed_table = "spot/depth"
         channels = [
             self.order_update_table + ":" + pair,
+            self.feed_table + ":" + pair,
         ]
 
-        sm = OkexWebsocketManager()
-        sm.daemon = True
-        sm.start_depth_socket(pair, self.process_depth_message)
-        sm.start()
-
-        subscribe(
+        sm = OkexWebsocketManager(
             creds.api_key,
             creds.pass_phrase,
             creds.secret_key,
-            channels,
-            self.process_message
         )
+        sm.daemon = True
+        sm.subscribe(channels, self.process_message)
+        sm.start()
+
         self.on_feed = lambda msg: False
         self.on_order_update = lambda msg: False
 
@@ -328,9 +293,6 @@ class OkexWebSocket(metaclass=Singleton):
             if msg['table'] == self.order_update_table:
                 self.on_order_update(msg)
 
-    def process_depth_message(self, payload):
-        msg = payload[0]
-        if 'channel' not in msg:
-            if msg['product'] == "spot" and msg['type'] == "depth":
+            if msg['table'] == self.feed_table:
                 self.on_feed(msg)
 

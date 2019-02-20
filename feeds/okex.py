@@ -10,23 +10,44 @@ class OkexFeed(Feed):
         ws = OkexWebSocket(pair)
         ws.subscribe_to_feed(self.process_message)
 
-    def process_message(self, payload):
+    def process_message(self, msg):
+        self.process_depth_message(msg)
+
+    def process_depth_message(self, payload):
         data = payload["data"]
-        sell_empty = 0
-        buy_empty = sys.maxsize
-        sell = self.reduce_depth([sell_empty] + data["bids"], None)
-        buy = self.reduce_depth(None, [buy_empty] + data["asks"])
-        if not sell == sell_empty and not buy == buy_empty:
-            msg = {
-                "price": {
-                    "sell": str(sell),
-                    "buy": str(buy),
+        if len(data):
+            depth = data[0]
+            empty_sell = 0
+            empty_buy = sys.maxsize
+            sell = self.reduce_depth(
+                [empty_sell] + depth["bids"],
+                None
+            )
+            buy = self.reduce_depth(
+                None,
+                [empty_buy] + depth["asks"]
+            )
+            if not buy == empty_buy and not sell == empty_sell:
+                self.e(
+                    {
+                        "price": {
+                            "buy": buy,
+                            "sell": sell
+                        }
+                    }
+                )
+
+    def process_ticker_message(self, payload):
+        data = payload["data"]
+        if len(data):
+            ticker = data[0]
+            bid_price = ticker["best_bid"]
+            ask_price = ticker["best_ask"]
+            self.e(
+                {
+                    "price": {
+                        "buy": ask_price,
+                        "sell": bid_price,
+                    }
                 }
-            }
-            self.e(msg)
-
-    def check_volume(self, depth_item):
-        return float(depth_item["totalSize"]) >= self.min_qty
-
-    def ask_bid_price(self, ask_bid):
-        return float(ask_bid["price"])
+            )
