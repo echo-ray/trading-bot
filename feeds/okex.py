@@ -17,8 +17,8 @@ class OkexFeed(Feed):
         data = payload["data"]
         if len(data):
             depth = data[0]
-            empty_sell = 0
-            empty_buy = sys.maxsize
+            empty_sell = float(0)
+            empty_buy = float(sys.maxsize)
             sell = self.reduce_depth(
                 [empty_sell] + depth["bids"],
                 None
@@ -31,8 +31,8 @@ class OkexFeed(Feed):
                 self.e(
                     {
                         "price": {
-                            "buy": buy,
-                            "sell": sell
+                            "buy": str(buy),
+                            "sell": str(sell)
                         }
                     }
                 )
