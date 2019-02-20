@@ -34,6 +34,9 @@ parser.add_argument("-r", "--real", dest="real", action="store_true",
 parser.add_argument("-log", "--log", dest="log", action="store_true",
                     help="log prices", default=False)
 
+parser.add_argument("-logc", "--logc", dest="combiner_log", action="store_true",
+                    help="log combiner meta data", default=False)
+
 parser.add_argument('-exc', action='append', dest='exchanges',
                     default=[],
                     help='exchanges list',
@@ -123,21 +126,24 @@ class Combiner:
         self.on_combined_value = on_combined_value
 
     def on_left(self, value):
-        # print("left value {}".format(strftime("%H:%M:%S", gmtime())))
+        if args.combiner_log:
+            print("left value {}".format(strftime("%H:%M:%S", gmtime())))
         self.left = value
 
         if self.right:
             self.emit()
 
     def on_right(self, value):
-        # print("right value {}".format(strftime("%H:%M:%S", gmtime())))
+        if args.combiner_log:
+            print("right value {}".format(strftime("%H:%M:%S", gmtime())))
         self.right = value
 
         if self.left:
             self.emit()
 
     def emit(self):
-        # print("emit value {}".format(strftime("%H:%M:%S", gmtime())))
+        if args.combiner_log:
+            print("emit value {}".format(strftime("%H:%M:%S", gmtime())))
         left = self.left
         right = self.right
         self.left = None

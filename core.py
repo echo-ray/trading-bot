@@ -1,5 +1,6 @@
 from math import floor
 import decimal
+import os
 
 
 def round_down(n, d=8):
@@ -53,5 +54,10 @@ def float_to_str(f):
     Convert the given float to a string,
     without resorting to scientific notation
     """
-    d1 = ctx.create_decimal(repr(f))
-    return format(d1, 'f')
+    try:
+        d1 = ctx.create_decimal(repr(f))
+        return format(d1, 'f')
+
+    except Exception:
+        print("failed to convert {} to string".format(f))
+        os._exit(1)

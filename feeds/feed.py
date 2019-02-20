@@ -32,9 +32,6 @@ class Feed(Config):
                 asks
             )
 
-    def ask_bid_price(self, ask_bid):
-        return float(ask_bid[0])
-
     def compare_bid(self, acc, bid):
         if self.check_volume(bid):
             price = self.ask_bid_price(bid)
@@ -51,3 +48,6 @@ class Feed(Config):
 
     def check_volume(self, depth_item):
         return float(depth_item[1]) >= self.min_qty
+
+    def ask_bid_price(self, ask_bid):
+        return float(ask_bid[0])

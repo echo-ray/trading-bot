@@ -26,23 +26,23 @@ class BittrexClient(Client):
     def subscribe_to_order_filled(self, cb):
         self.on_order_filled = cb
 
-    def buy(self, price, count, pair, rate=1):
+    def buy(self, price, count, pair):
         if self.real:
             result = self.api.buy_limit(
                 normalize_pair(pair),
                 count,
-                rate
+                price
             )
             return self.from_real_order(result)
 
         return self.fake_order(price, count, pair, SIDE_BUY)
 
-    def sell(self, price, count, pair, rate=1):
+    def sell(self, price, count, pair):
         if self.real:
             result = self.api.sell_limit(
                 normalize_pair(pair),
                 count,
-                rate
+                price
             )
             return self.from_real_order(result)
 
