@@ -1,5 +1,5 @@
 from termcolor import colored
-from core import split_pair, round_down
+from core import split_pair, round_down, float_to_str
 from argparse import ArgumentParser
 import os
 
@@ -178,7 +178,7 @@ def buy_asset(price, client, pair):
 
     return client.buy(
         price,
-        str(round_down(buy_count, 8)),
+        float_to_str(round_down(buy_count, 8)),
         pair
     )
 
@@ -193,6 +193,6 @@ def sell_asset(price, client, pair):
 
     return client.sell(
         price,
-        str(round_down(sell_count, 8)),
+        float_to_str(round_down(sell_count, 8)),
         pair
     )

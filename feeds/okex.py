@@ -1,8 +1,8 @@
+from core import float_to_str
 from feeds.feed import Feed
 from api.okex.websocket import OkexWebSocket
 import sys
 from pprint import pprint
-from functools import reduce
 
 
 class OkexFeed(Feed):
@@ -31,8 +31,8 @@ class OkexFeed(Feed):
                 self.e(
                     {
                         "price": {
-                            "buy": str(buy),
-                            "sell": str(sell)
+                            "buy": float_to_str(buy),
+                            "sell": float_to_str(sell)
                         }
                     }
                 )

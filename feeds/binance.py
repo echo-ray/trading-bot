@@ -1,4 +1,6 @@
 from binance.websockets import BinanceSocketManager
+
+from core import float_to_str
 from feeds.feed import Feed
 from api.binance import create_ws, normalize_pair
 import sys
@@ -24,8 +26,8 @@ class BinanceFeed(Feed):
         if not sell == sell_empty and not buy == buy_empty:
             msg = {
                 "price": {
-                    "sell": str(sell),
-                    "buy": str(buy),
+                    "sell": float_to_str(sell),
+                    "buy": float_to_str(buy),
                 }
             }
             self.e(msg)

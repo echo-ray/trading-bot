@@ -1,4 +1,5 @@
 from math import floor
+import decimal
 
 
 def round_down(n, d=8):
@@ -16,13 +17,13 @@ def calculate_remains(pair, buy, price, quantity, fee, balance):
 
     if buy:
         return {
-            '' + asset: str(balance_asset + quantity),
-            '' + quote: str(balance_quote - (quantity * price))
+            '' + asset: float_to_str(balance_asset + quantity),
+            '' + quote: float_to_str(balance_quote - (quantity * price))
         }
     else:
         return {
-            '' + asset: str(balance_asset - quantity),
-            '' + quote: str(balance_quote + (quantity * price))
+            '' + asset: float_to_str(balance_asset - quantity),
+            '' + quote: float_to_str(balance_quote + (quantity * price))
         }
 
 
@@ -38,3 +39,19 @@ def minus_fee(price, fee):
         return price - fee
 
     return price - (price * fee)
+
+
+# create a new context for this task
+ctx = decimal.Context()
+
+# 20 digits should be enough for everyone :D
+ctx.prec = 20
+
+
+def float_to_str(f):
+    """
+    Convert the given float to a string,
+    without resorting to scientific notation
+    """
+    d1 = ctx.create_decimal(repr(f))
+    return format(d1, 'f')
