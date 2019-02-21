@@ -1,23 +1,9 @@
 from termcolor import colored
 from core import split_pair, round_down, float_to_str
-from argparse import ArgumentParser
 import os
+from lib.config import Config
 
-parser = ArgumentParser()
-parser.add_argument("-d", "--diff", dest="diff",
-                    help="diff between prices to execute step", default=None)
-parser.add_argument("-qty", "--quantity", dest="quantity",
-                    help="asset quantity to trade", default="1")
-parser.add_argument("-fromside", "--buyside", dest="buy_side",
-                    help="buy side", default=None)
-parser.add_argument("-toside", "--sellside", dest="sell_side",
-                    help="sell side", default=None)
-parser.add_argument('-exc', action='append', dest='exchanges',
-                    default=[],
-                    help='exchanges list',
-                    )
-
-args, extra = parser.parse_known_args()
+args = Config.get_args()
 
 transitions = {
     "1": "1.3",

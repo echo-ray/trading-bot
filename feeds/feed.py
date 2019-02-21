@@ -1,16 +1,11 @@
 from core import float_to_str
 from lib.event import Event
-from lib.config import Config
 from functools import reduce
-from argparse import ArgumentParser
 import sys
+from lib.config import Config
 from pprint import pprint
 
-parser = ArgumentParser()
-parser.add_argument("-qty", "--quantity", dest="quantity",
-                    help="asset quantity to trade", default="1")
-
-args, extra = parser.parse_known_args()
+args = Config.get_args()
 
 
 class Feed(Config):

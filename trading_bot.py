@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-from argparse import ArgumentParser
 from feeds.binance import BinanceFeed
 from feeds.okex import OkexFeed
 from feeds.bittrex import BittrexFeed
@@ -15,35 +14,7 @@ import sys
 import os
 from time import gmtime, strftime
 
-parser = ArgumentParser()
-parser.add_argument("-p", "--pair", dest="pair",
-                    help="pair to trade")
-
-parser.add_argument("-str", "--strategy", dest="strategy",
-                    help="filename of the strategy", default="default")
-
-parser.add_argument("-s", "--steps", dest="steps",
-                    help="number of steps to execute", default=None, type=int)
-
-parser.add_argument("-stp", "--current-step", dest="current_step",
-                    help="current step to start")
-
-parser.add_argument("-r", "--real", dest="real", action="store_true",
-                    help="make real trades", default=False)
-
-parser.add_argument("-log", "--log", dest="log", action="store_true",
-                    help="log prices", default=False)
-
-parser.add_argument("-logc", "--logc", dest="combiner_log", action="store_true",
-                    help="log combiner meta data", default=False)
-
-parser.add_argument('-exc', action='append', dest='exchanges',
-                    default=[],
-                    help='exchanges list',
-                    )
-
-
-args, extra = parser.parse_known_args()
+args = Config.get_args()
 
 feeds = {
     "binance": BinanceFeed,
@@ -58,7 +29,7 @@ clients = {
 }
 
 if len(sys.argv) == 1:
-    parser.print_help(sys.stderr)
+    Config.print_help(sys.stderr)
     os._exit(1)
 
 config = Config()
@@ -144,11 +115,7 @@ class Combiner:
     def emit(self):
         if args.combiner_log:
             print("emit value {}".format(strftime("%H:%M:%S", gmtime())))
-        left = self.left
-        right = self.right
-        self.left = None
-        self.right = None
-        self.on_combined_value((left, right))
+        self.on_combined_value((self.left, self.right))
 
 
 combiner = Combiner(on_stream_value)

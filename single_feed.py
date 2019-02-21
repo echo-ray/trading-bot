@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+from lib.config import Config
 from feeds.binance import BinanceFeed
 from feeds.okex import OkexFeed
 from feeds.bittrex import BittrexFeed
@@ -7,13 +7,7 @@ import os
 import sys
 import time
 
-parser = ArgumentParser()
-parser.add_argument("-f", "--feed", dest="feed",
-                    help="feed adapter")
-parser.add_argument("-p", "--pair", dest="pair",
-                    help="pair to get feed on")
-
-args, extra = parser.parse_known_args()
+args = Config.get_args()
 
 feeds = {
     "okex": OkexFeed,
@@ -22,7 +16,7 @@ feeds = {
 }
 
 if len(sys.argv) == 1:
-    parser.print_help(sys.stderr)
+    Config.print_help(sys.stderr)
     os._exit(1)
 
 
