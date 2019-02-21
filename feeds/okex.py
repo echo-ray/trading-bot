@@ -7,35 +7,24 @@ from pprint import pprint
 
 class OkexFeed(Feed):
     def feed(self, pair):
+        self.depth_update_with_delta = True
         ws = OkexWebSocket(pair)
         ws.subscribe_to_feed(self.process_message)
 
     def process_message(self, msg):
         self.process_depth_message(msg)
 
-    def process_depth_message(self, payload):
+    def bids_from_msg(self, payload):
         data = payload["data"]
         if len(data):
             depth = data[0]
-            empty_sell = float(0)
-            empty_buy = float(sys.maxsize)
-            sell = self.reduce_depth(
-                [empty_sell] + depth["bids"],
-                None
-            )
-            buy = self.reduce_depth(
-                None,
-                [empty_buy] + depth["asks"]
-            )
-            if not buy == empty_buy and not sell == empty_sell:
-                self.e(
-                    {
-                        "price": {
-                            "buy": float_to_str(buy),
-                            "sell": float_to_str(sell)
-                        }
-                    }
-                )
+            return depth["bids"]
+
+    def asks_from_msg(self, payload):
+        data = payload["data"]
+        if len(data):
+            depth = data[0]
+            return depth["asks"]
 
     def process_ticker_message(self, payload):
         data = payload["data"]

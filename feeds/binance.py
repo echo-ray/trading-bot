@@ -13,24 +13,15 @@ class BinanceFeed(Feed):
         bm.start_depth_socket(normalize_pair(pair), self.process_message, depth=BinanceSocketManager.WEBSOCKET_DEPTH_20)
         bm.daemon = True
         bm.start()
-        return bm
 
     def process_message(self, msg):
         self.process_depth_message(msg)
 
-    def process_depth_message(self, payload):
-        sell_empty = float(0)
-        buy_empty = float(sys.maxsize)
-        sell = self.reduce_depth([sell_empty] + payload["bids"], None)
-        buy = self.reduce_depth(None, [buy_empty] + payload["asks"])
-        if not sell == sell_empty and not buy == buy_empty:
-            msg = {
-                "price": {
-                    "sell": float_to_str(sell),
-                    "buy": float_to_str(buy),
-                }
-            }
-            self.e(msg)
+    def bids_from_msg(self, msg):
+        return msg["bids"]
+
+    def asks_from_msg(self, msg):
+        return msg["asks"]
 
     def process_ticker_message(self, payload):
         bid_price = payload["b"]
