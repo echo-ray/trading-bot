@@ -75,10 +75,12 @@ class BittrexClient(Client):
 
     def check_order_status(self):
         resp = self.api.get_order(self.last_order_id)
-        if isinstance(resp["Closed"], str):
-            self.last_order_id = None
-            self.scheduler.shutdown()
-            self.on_order_filled()
+        result = resp["result"]
+        if "Closed" in result:
+            if isinstance(result["Closed"], str):
+                self.last_order_id = None
+                self.scheduler.shutdown()
+                self.on_order_filled()
 
     def calculate_new_balance(self, order, pair, buy=None, price=None, quantity=None):
         if order:
