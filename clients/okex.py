@@ -46,9 +46,11 @@ class OkexClient(Client):
     def get_fee(self, pair, buy):
         asset, quote = split_pair(pair)
         if buy:
-            return self.fees[asset]['min_fee']
+            fee = self.fees[asset]['max_fee']
+        else:
+            fee = self.fees[quote]['max_fee']
 
-        return self.fees[quote]['min_fee']
+        return float(fee) / 100
 
     def buy(self, price, count, pair):
         if self.real:

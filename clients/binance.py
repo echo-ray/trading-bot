@@ -4,6 +4,7 @@ from api.binance import create_client, normalize_pair, get_fees, create_ws
 from functools import reduce
 from core import split_pair
 import threading
+import os
 
 
 class BinanceClient(Client):

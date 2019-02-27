@@ -12,7 +12,8 @@ from termcolor import colored
 import importlib
 import sys
 import os
-from time import gmtime, strftime
+from lib.state_machine import StateMachine
+from lib.combiner import Combiner
 
 args = Config.get_args()
 
@@ -41,43 +42,29 @@ leftClient = clients[leftExc](args.real, balance[leftExc], args.pair)
 rightClient = clients[rightExc](args.real, balance[rightExc], args.pair)
 
 
-class StateMachine:
-    def __init__(self):
-        strategy = importlib.import_module('strategies.' + args.strategy)
-        self.transitions = strategy.transitions
-        self.perform_step = strategy.perform_step
-        if args.current_step:
-            self.step = args.current_step
-        else:
-            self.step = next(iter(self.transitions))
-        self.steps = 0
-        leftClient.subscribe_to_order_filled(self.next)
-        rightClient.subscribe_to_order_filled(self.next)
-
-    def run(self, left_price, right_price):
-        if self.steps == args.steps:
-            os._exit(1)
-
-        if args.log:
-            print(colored("{} price: {} {} price: {}".format(leftExc, left_price, rightExc, right_price), 'cyan'))
-
-        if self.perform_step(left_price, right_price, leftClient, rightClient, args.pair, self.step):
-            self.next()
-
-    def next(self):
-        self.steps += 1
-        print(
-            colored("transition from {} to {} step".format(self.step, self.transitions[self.step]), "magenta")
-        )
-        self.step = self.transitions[self.step]
-
-
-stateMachine = StateMachine()
+strategy = importlib.import_module('strategies.' + args.strategy)
+transitions = strategy.transitions
+stateMachine = StateMachine(
+    strategy,
+    args.current_step if args.current_step else next(iter(transitions))
+)
+leftClient.subscribe_to_order_filled(stateMachine.next)
+rightClient.subscribe_to_order_filled(stateMachine.next)
 
 
 def on_stream_value(v):
     left, right = v
-    stateMachine.run(left['price'], right['price'])
+    left_price = left['price']
+    right_price = right['price']
+
+    if stateMachine.steps == args.steps:
+        os._exit(1)
+
+    if args.log:
+        print(colored("{} price: {} {} price: {}".format(leftExc, left_price, rightExc, right_price), 'cyan'))
+
+    if strategy.perform_step(left_price, right_price, leftClient, rightClient, args.pair, stateMachine.step):
+        stateMachine.next()
 
 
 def start_feed(Feed, onValue):
@@ -90,35 +77,7 @@ leftFeed = feeds[leftExc]
 rightFeed = feeds[rightExc]
 
 
-class Combiner:
-    def __init__(self, on_combined_value):
-        self.left = None
-        self.right = None
-        self.on_combined_value = on_combined_value
-
-    def on_left(self, value):
-        if args.combiner_log:
-            print("left value {}".format(strftime("%H:%M:%S", gmtime())))
-        self.left = value
-
-        if self.right:
-            self.emit()
-
-    def on_right(self, value):
-        if args.combiner_log:
-            print("right value {}".format(strftime("%H:%M:%S", gmtime())))
-        self.right = value
-
-        if self.left:
-            self.emit()
-
-    def emit(self):
-        if args.combiner_log:
-            print("emit value {}".format(strftime("%H:%M:%S", gmtime())))
-        self.on_combined_value((self.left, self.right))
-
-
-combiner = Combiner(on_stream_value)
+combiner = Combiner(on_stream_value, args.combiner_log)
 start_feed(leftFeed, combiner.on_left)
 start_feed(rightFeed, combiner.on_right)
 

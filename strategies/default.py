@@ -1,5 +1,5 @@
 from termcolor import colored
-from core import split_pair, round_down, float_to_str
+from core import split_pair, round_down, float_to_str, calculate_buy_count
 import os
 from lib.config import Config
 
@@ -157,14 +157,18 @@ def buy_asset(price, client, pair):
     asset, quote = split_pair(pair)
     buy_count = round_down(
         trade_quantity,
-        2
+        8
+    )
+    buy_count = calculate_buy_count(
+        buy_count,
+        client.get_fee(pair, True)
     )
 
     print(colored("buying {} of {} on {} for {}".format(buy_count, asset, client.exchange, price), "green"))
 
     return client.buy(
         price,
-        float_to_str(round_down(buy_count, 8)),
+        float_to_str(buy_count),
         pair
     )
 
