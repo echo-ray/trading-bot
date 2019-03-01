@@ -4,6 +4,7 @@ from functools import reduce
 import sys
 from lib.config import Config
 from pprint import pprint
+import os
 
 args = Config.get_args()
 
@@ -25,6 +26,9 @@ class Feed(Config):
 
     def subscribe(self, cb):
         self.e.append(cb)
+
+    def unsubscribe(self, cb):
+        self.e.remove(cb)
 
     def bids_from_msg(self, msg):
         raise Exception("feed should implement bids_from_msg")
@@ -50,8 +54,6 @@ class Feed(Config):
 
         for ask in asks:
             if self.ask_bid_deleted(ask):
-                self.asks = self.filter_ask_bid(ask, asks)
-
                 if self.ask_bid_price(ask) == self.best_ask:
                     self.best_ask = self.buy_empty
             else:
@@ -59,12 +61,13 @@ class Feed(Config):
 
         for bid in bids:
             if self.ask_bid_deleted(bid):
-                self.bids = self.filter_ask_bid(bid, bids)
-
                 if self.ask_bid_price(bid) == self.best_bid:
                     self.best_bid = self.sell_empty
             else:
                 self.best_bid = self.compare_bid(self.best_bid, bid)
+
+        self.asks = self.filter_empty_ask_bids(asks)
+        self.bids = self.filter_empty_ask_bids(bids)
 
         self.emit_from_depth()
 
@@ -79,10 +82,10 @@ class Feed(Config):
 
     def emit_from_delta(self):
         if self.best_ask == self.buy_empty:
-            self.best_ask = self.reduce_depth(None, self.asks)
+            self.best_ask = self.reduce_depth(None, [self.buy_empty] + self.asks)
 
         if self.best_bid == self.sell_empty:
-            self.best_bid = self.reduce_depth(self.bids, None)
+            self.best_bid = self.reduce_depth([self.sell_empty] + self.bids, None)
 
         self.emit_from_depth()
 
@@ -123,14 +126,16 @@ class Feed(Config):
 
         return acc
 
-    def filter_ask_bid(self, depth_item, depth_items):
-        return filter(
-            lambda item: self.ask_bid_price(item) != self.ask_bid_price(depth_item),
-            depth_items
+    def filter_empty_ask_bids(self, depth_items):
+        return list(
+            filter(
+                lambda item: not self.ask_bid_deleted(item),
+                depth_items
+            )
         )
 
     def ask_bid_deleted(self, depth_item):
-        return depth_item[2] == 0
+        raise Exception("ask_bid_deleted should be implemented in particular feed")
 
     def ask_bid_volume(self, depth_item):
         return float(depth_item[1])

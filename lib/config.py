@@ -43,6 +43,8 @@ parser.add_argument("-fromside", "--buyside", dest="buy_side",
 parser.add_argument("-toside", "--sellside", dest="sell_side",
                     help="sell side", default=None)
 
+parser.add_argument("-feed", "--feed", dest="feed",
+                    help="feed")
 
 args, extra = parser.parse_known_args()
 
