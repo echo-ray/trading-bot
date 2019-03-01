@@ -40,3 +40,6 @@ class OkexFeed(Feed):
                     }
                 }
             )
+
+    def ask_bid_deleted(self, depth_item):
+        return float(depth_item[2]) == 0
