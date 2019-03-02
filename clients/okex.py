@@ -6,8 +6,9 @@ from functools import reduce
 from api.okex.consts import *
 from api.okex.websocket import OkexWebSocket
 import threading
-from core import split_pair
+from core import split_pair, float_to_str
 import os
+from decimal import Decimal
 
 
 class OkexClient(Client):
@@ -44,13 +45,10 @@ class OkexClient(Client):
         self.on_order_filled = cb
 
     def get_fee(self, pair, buy):
-        asset, quote = split_pair(pair)
-        if buy:
-            fee = self.fees[asset]['max_fee']
-        else:
-            fee = self.fees[quote]['max_fee']
+        return 0.0015
 
-        return float(fee) / 100
+    def get_step_size(self, pair):
+        return '0.01000000'
 
     def buy(self, price, count, pair):
         if self.real:

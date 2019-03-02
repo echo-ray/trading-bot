@@ -45,7 +45,7 @@ rightClient = clients[rightExc](args.real, balance[rightExc], args.pair)
 strategy = importlib.import_module('strategies.' + args.strategy)
 transitions = strategy.transitions
 stateMachine = StateMachine(
-    strategy,
+    transitions,
     args.current_step if args.current_step else next(iter(transitions))
 )
 leftClient.subscribe_to_order_filled(stateMachine.next)

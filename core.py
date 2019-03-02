@@ -2,6 +2,8 @@ from math import floor
 import decimal
 import os
 
+Decimal = decimal.Decimal
+
 
 def round_down(n, d=8):
     d = int('1' + ('0' * d))
@@ -45,14 +47,13 @@ def minus_fee(price, fee):
     return price - (price * fee)
 
 
-# create a new context for this task
-ctx = decimal.Context()
-
-# 20 digits should be enough for everyone :D
-ctx.prec = 40
-
-
 def float_to_str(f):
+    # create a new context for this task
+    ctx = decimal.Context()
+
+    # 20 digits should be enough for everyone :D
+    ctx.prec = 40
+
     """
     Convert the given float to a string,
     without resorting to scientific notation
@@ -66,6 +67,16 @@ def float_to_str(f):
         os._exit(1)
 
 
-def calculate_buy_count(count, fee):
-    divider = 1 - float(fee)
-    return float(count) / divider
+count_precision = 2
+
+
+def calculate_buy_count(count, fee, step_size):
+    if Decimal(step_size) < 1:
+        divider = 1 - Decimal(fee)
+        return round_down(Decimal(count) / divider, count_precision)
+
+    return round_down(count, count_precision)
+
+
+def calculate_sell_count(count, step_size):
+    return round_down(count, count_precision)

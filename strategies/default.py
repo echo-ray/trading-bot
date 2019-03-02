@@ -1,5 +1,5 @@
 from termcolor import colored
-from core import split_pair, round_down, float_to_str, calculate_buy_count
+from core import split_pair, round_down, float_to_str, calculate_buy_count, calculate_sell_count
 import os
 from lib.config import Config
 
@@ -155,16 +155,13 @@ def print_balance(client_one, client_two, step):
 
 def buy_asset(price, client, pair):
     asset, quote = split_pair(pair)
-    buy_count = round_down(
-        trade_quantity,
-        8
-    )
     buy_count = calculate_buy_count(
-        buy_count,
-        client.get_fee(pair, True)
+        trade_quantity,
+        client.get_fee(pair, True),
+        client.get_step_size(pair)
     )
 
-    print(colored("buying {} of {} on {} for {}".format(buy_count, asset, client.exchange, price), "green"))
+    print(colored("buying {} of {} on {} for {}".format(float_to_str(buy_count), asset, client.exchange, price), "green"))
 
     return client.buy(
         price,
@@ -175,14 +172,14 @@ def buy_asset(price, client, pair):
 
 def sell_asset(price, client, pair):
     asset, quote = split_pair(pair)
-    sell_count = round_down(
+    sell_count = calculate_sell_count(
         trade_quantity,
-        2
+        client.get_step_size(pair)
     )
-    print(colored("selling {} of {} on {} for {}".format(sell_count, asset, client.exchange, price), "red"))
+    print(colored("selling {} of {} on {} for {}".format(float_to_str(sell_count), asset, client.exchange, price), "red"))
 
     return client.sell(
         price,
-        float_to_str(round_down(sell_count, 8)),
+        float_to_str(sell_count),
         pair
     )

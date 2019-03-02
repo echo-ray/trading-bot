@@ -2,17 +2,19 @@ from clients.client import Client
 from binance.enums import *
 from api.binance import create_client, normalize_pair, get_fees, create_ws
 from functools import reduce
-from core import split_pair
+from core import split_pair, float_to_str
 import threading
 import os
+from pprint import pprint
+from decimal import Decimal
 
 
 class BinanceClient(Client):
-    def __init__(self, *args):
+    def __init__(self, *args, client_creator=create_client, timer=threading.Timer, request_fee=get_fees):
         Client.__init__(self, *args)
-        client = create_client()
+        client = client_creator()
         self.client = client
-        fees_arr = get_fees()
+        fees_arr = request_fee()
         self.fees = reduce(
             lambda acc, curr: {**acc, '' + curr['symbol']: curr},
             [{}] + fees_arr
@@ -25,6 +27,8 @@ class BinanceClient(Client):
         ws.daemon = True
         ws.start()
         self.on_order_filled = lambda: None
+        self.Timer = timer
+        self.exchange_info = self.client.get_exchange_info()
 
     def subscribe_to_order_filled(self, cb):
         self.on_order_filled = cb
@@ -40,6 +44,17 @@ class BinanceClient(Client):
                     self.on_order_filled()
                 if msg["X"] == ORDER_STATUS_CANCELED or msg["X"] == ORDER_STATUS_REJECTED:
                     raise Exception("binance order finished with error {}".format(msg["r"]))
+
+    def get_step_size(self, pair):
+        normalized_pair = normalize_pair(pair)
+        symbols = self.exchange_info["symbols"]
+        for symbol in symbols:
+            if symbol["symbol"] == normalized_pair:
+                for filter_obj in symbol["filters"]:
+                    if filter_obj["filterType"] == "LOT_SIZE":
+                        return filter_obj["stepSize"]
+
+        raise Exception("unknown pair for step size")
 
     def get_fee(self, pair, buy):
         return self.fees[normalize_pair(pair)]['taker']
@@ -103,7 +118,7 @@ class BinanceClient(Client):
         return True
 
     def tick_order_filled(self):
-        t = threading.Timer(0.1, self.on_order_filled)
+        t = self.Timer(0.1, self.on_order_filled)
         t.start()
 
     def calculate_new_balance(self, order, pair, buy=None, price=None, quantity=None):

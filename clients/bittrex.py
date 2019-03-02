@@ -23,6 +23,9 @@ class BittrexClient(Client):
         # 0.25%
         return 0.0025
 
+    def get_step_size(self, pair):
+        return '0.01000000'
+
     def subscribe_to_order_filled(self, cb):
         self.on_order_filled = cb
 

@@ -1,8 +1,9 @@
 from termcolor import colored
+from pprint import pprint
 
 
 class StateMachine:
-    def __init__(self, state_transitions, current_step, log = True):
+    def __init__(self, state_transitions, current_step, log=True):
         self.transitions = state_transitions
         self.step = current_step
         self.steps = 0

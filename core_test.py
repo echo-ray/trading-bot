@@ -77,9 +77,18 @@ class CoreTest(TestCase):
         self.assertEqual(
             core.calculate_buy_count(
                 100,
-                0.0001
+                0.0001,
+                0.0000100
             ),
-            100.0100010001
+            100.01
+        )
+        self.assertEqual(
+            core.calculate_buy_count(
+                100,
+                0.0001,
+                1
+            ),
+            100.0
         )
 
 
