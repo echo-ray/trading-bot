@@ -4,6 +4,7 @@ from bittrex_websocket import BittrexSocket, BittrexMethods
 from api.bittrex import normalize_pair, DELTA_TYPE_ADD, DELTA_TYPE_REMOVE
 from pprint import pprint
 import sys
+from decimal import Decimal
 
 
 class BittrexFeed(Feed, BittrexSocket):
@@ -61,10 +62,13 @@ class BittrexFeed(Feed, BittrexSocket):
         return None
 
     def ask_bid_volume(self, depth_item):
-        return float(depth_item["Q"])
+        return Decimal(depth_item["Q"])
 
     def ask_bid_deleted(self, depth_item):
-        return depth_item['TY'] == DELTA_TYPE_REMOVE
+        if "TY" in depth_item:
+            return depth_item['TY'] == DELTA_TYPE_REMOVE
+
+        return self.ask_bid_volume(depth_item) == Decimal(0)
 
     def ask_bid_price(self, ask_bid):
-        return float(ask_bid["R"])
+        return Decimal(ask_bid["R"])

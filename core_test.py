@@ -91,6 +91,15 @@ class CoreTest(TestCase):
             100.0
         )
 
+    def test_calculate_sell_count(self):
+        self.assertEqual(
+            core.calculate_sell_count(
+                50.0123,
+                1
+            ),
+            50.01
+        )
+
 
 if __name__ == '__main__':
     main()

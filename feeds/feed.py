@@ -5,6 +5,8 @@ import sys
 from lib.config import Config
 from pprint import pprint
 import os
+import json
+from decimal import Decimal
 
 args = Config.get_args()
 
@@ -54,20 +56,29 @@ class Feed(Config):
 
         for ask in asks:
             if self.ask_bid_deleted(ask):
+                try:
+                    self.asks.remove(ask)
+                except Exception:
+                    pass
+
                 if self.ask_bid_price(ask) == self.best_ask:
                     self.best_ask = self.buy_empty
             else:
+                self.asks.append(ask)
                 self.best_ask = self.compare_ask(self.best_ask, ask)
 
         for bid in bids:
             if self.ask_bid_deleted(bid):
+                try:
+                    self.bids.remove(bid)
+                except Exception:
+                    pass
+
                 if self.ask_bid_price(bid) == self.best_bid:
                     self.best_bid = self.sell_empty
             else:
+                self.bids.append(bid)
                 self.best_bid = self.compare_bid(self.best_bid, bid)
-
-        self.asks = self.filter_empty_ask_bids(asks)
-        self.bids = self.filter_empty_ask_bids(bids)
 
         self.emit_from_depth()
 
@@ -115,14 +126,14 @@ class Feed(Config):
     def compare_bid(self, acc, bid):
         if self.check_volume(bid):
             price = self.ask_bid_price(bid)
-            return acc if float(acc) > price else price
+            return acc if Decimal(acc) > price else price
 
         return acc
 
     def compare_ask(self, acc, ask):
         if self.check_volume(ask):
             price = self.ask_bid_price(ask)
-            return acc if float(acc) < price else price
+            return acc if Decimal(acc) < price else price
 
         return acc
 
@@ -138,10 +149,10 @@ class Feed(Config):
         raise Exception("ask_bid_deleted should be implemented in particular feed")
 
     def ask_bid_volume(self, depth_item):
-        return float(depth_item[1])
+        return Decimal(depth_item[1])
 
     def check_volume(self, depth_item):
-        return self.ask_bid_volume(depth_item) >= self.min_qty
+        return self.ask_bid_volume(depth_item) > self.min_qty
 
     def ask_bid_price(self, ask_bid):
-        return float(ask_bid[0])
+        return Decimal(ask_bid[0])

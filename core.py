@@ -59,7 +59,7 @@ def float_to_str(f):
     without resorting to scientific notation
     """
     try:
-        d1 = ctx.create_decimal(repr(f))
+        d1 = f if isinstance(f, Decimal) else ctx.create_decimal(repr(f))
         return format(d1, 'f')
 
     except Exception:
